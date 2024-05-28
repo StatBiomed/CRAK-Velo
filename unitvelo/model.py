@@ -26,7 +26,6 @@ class Recover_Paras(Model_Utils):
         Mu,
         var_names,
         idx=None,
-        rep=1,
         config=None
     ):
         super().__init__(
@@ -38,7 +37,6 @@ class Recover_Paras(Model_Utils):
         )
 
         self.idx = idx
-        self.rep = rep
         self.scaling = adata.var['scaling'].values
         self.flag = True
 
@@ -75,18 +73,6 @@ class Recover_Paras(Model_Utils):
                         self.t + 3 * (1 / sqrt(2 * exp(self.log_a))))
 
             t_cell = self.init_time((0, 1), self.adata.shape)
-
-            if self.rep == 1:
-                if self.config.NUM_REP_TIME == 're_init':
-                    t_cell = 1 - t_cell
-                if self.config.NUM_REP_TIME == 're_pre':
-                    t_cell = 1 - self.adata.obs['latent_time_gm'].values
-                    t_cell = tf.broadcast_to(t_cell.reshape(-1, 1), self.adata.shape)
-            
-            if self.rep > 1:
-                tf.random.set_seed(np.ceil((self.rep - 1) / 2))
-                shuffle = tf.random.shuffle(t_cell)
-                t_cell = shuffle if self.rep % 2 == 1 else 1 - shuffle
 
             if self.config.IROOT == 'gcount':
                 print ('---> Use Gene Counts as initial.')
@@ -261,6 +247,8 @@ class Recover_Paras(Model_Utils):
         log_a, t, log_h = self.log_a, self.t, self.log_h
 
         from packaging import version
+        import os
+        os.environ['TF_USE_LEGACY_KERAS'] = '1'
         if version.parse(tf.__version__) >= version.parse('2.11.0'):
             optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.init_lr, amsgrad=True)
         else:
@@ -361,9 +349,7 @@ class Recover_Paras(Model_Utils):
                 self.K, self.scaling)
 
         #! Model loss, log likelihood and BIC based on unspliced counts
-        gene_loss = sum(self.m_ur2, axis=0) / self.nobs \
-            if self.config.FILTER_CELLS \
-            else sum(self.m_ur2, axis=0) / self.Ms.shape[0]
+        gene_loss = sum(self.m_ur2, axis=0) / self.Ms.shape[0]
 
         list_name = ['fit_loss', 'fit_llf']
         list_data = [gene_loss.numpy(), self.m_ullf.numpy()]
@@ -394,7 +380,6 @@ def lagrange(
     Ms=None,
     Mu=None,
     var_names="velocity_genes",
-    rep=1,
     config=None
 ):
     if len(set(adata.var_names)) != len(adata.var_names):
@@ -409,7 +394,6 @@ def lagrange(
         Mu,
         var_names,
         idx=idx,
-        rep=rep,
         config=config
     )
 

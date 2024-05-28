@@ -63,14 +63,7 @@ class Velocity:
 
         self.velocity_genes = np.ones(Ms.shape[1], dtype=bool)
 
-        if type(self.config.VGENES) == str and \
-            self.config.VGENES in self.adata.var.index:
-            self.adata.uns['examine_genes'] = self.config.VGENES
-            self.velocity_genes = np.zeros(Ms.shape[1], dtype=np.bool)
-            self.velocity_genes[
-                np.argwhere(self.adata.var.index == self.config.VGENES)] = True
-
-        elif type(self.config.VGENES) == list:
+        if type(self.config.VGENES) == list:
             temp = []
             for gene in variable.index:
                 if gene in self.config.VGENES:
@@ -85,10 +78,7 @@ class Velocity:
             self.velocity_genes = np.ones(Ms.shape[1], dtype=np.bool)
 
         elif self.config.VGENES == 'offset':
-            self.fit_linear(None, self.Ms, self.Mu, 'vgene_offset', coarse=False)
-
-            if self.config.FILTER_CELLS:
-                self.fit_linear(None, self.Ms, self.Mu, 'vgene_offset', coarse=True)
+            self.fit_linear(self.Ms, self.Mu)
 
         elif self.config.VGENES == 'basic':
             self.velocity_genes = (
@@ -159,71 +149,51 @@ class Velocity:
         self.adata.var['intercept'] = df_gamma['inter'].values
         return residual
 
-    def fit_linear(self, idx, Ms, Mu, method='vgene_offset', coarse=False):
-        '''
-        [bic] for linear BIC comparison with algorithm BIC
-        [kinetic] for selection of cyclic kinetic gene and monotonic expression gene
-        [vgene_offset] for determination of velocity gene alternatively using offset
-        '''
+    def fit_linear(self, Ms, Mu):
+        from sklearn import linear_model
+        from sklearn.metrics import r2_score
 
-        if method == 'vgene_offset':
-            from sklearn import linear_model
-            from sklearn.metrics import r2_score
+        index = self.adata.var.index
+        linear = pd.DataFrame(index=index, data=0, dtype=np.float32, 
+            columns=['coef', 'inter', 'r2'])
 
-            index = self.adata.var.index
-            linear = pd.DataFrame(index=index, data=0, dtype=np.float32, 
-                columns=['coef', 'inter', 'r2'])
+        reg = linear_model.LinearRegression()
+        for col in range(Ms.shape[1]):
+            sobs = np.reshape(Ms[:, col], (-1, 1))
+            uobs = np.reshape(Mu[:, col], (-1, 1))
 
-            reg = linear_model.LinearRegression()
-            for col in range(Ms.shape[1]):
-                if not coarse:
-                    sobs = np.reshape(Ms[:, col], (-1, 1))
-                    uobs = np.reshape(Mu[:, col], (-1, 1))
+            reg.fit(sobs, uobs)
+            u_pred = reg.predict(sobs)
 
-                else:                
-                    if self.config.FILTER_CELLS:
-                        nonzero_s = Ms[:, col] > 0
-                        nonzero_u = Mu[:, col] > 0
-                        valid = np.array(nonzero_s & nonzero_u, dtype=bool)
-                        sobs = np.reshape(Ms[:, col][valid], (-1, 1))
-                        uobs = np.reshape(Mu[:, col][valid], (-1, 1))
+            linear.loc[index[col], 'coef'] = float(reg.coef_.squeeze())
+            linear.loc[index[col], 'inter'] = float(reg.intercept_.squeeze())
+            linear.loc[index[col], 'r2'] = r2_score(uobs, u_pred)
 
-                    else:
-                        sobs = np.reshape(Ms[:, col], (-1, 1))
-                        uobs = np.reshape(Mu[:, col], (-1, 1))
+        self.adata.var['velocity_inter'] = np.array(linear['inter'].values)
+        self.adata.var['velocity_gamma'] = np.array(linear['coef'].values)
+        self.adata.var['velocity_r2'] = np.array(linear['r2'].values)
+        self.gamma_ref = np.array(linear['coef'].values)
+        self.r2 = np.array(linear['r2'].values)
 
-                reg.fit(sobs, uobs)
-                u_pred = reg.predict(sobs)
+        self.velocity_genes = (
+            self.velocity_genes
+            & (self.r2 > self.min_r2)
+            & (self.r2 < 0.95)
+            & (np.array(linear['coef'].values) > self.min_ratio)
+            & (np.max(self.Ms > 0, axis=0) > 0)
+            & (np.max(self.Mu > 0, axis=0) > 0)
+        )
+        print (f'# of velocity genes {self.velocity_genes.sum()} (Criterion: positive regression coefficient between un/spliced counts)')
 
-                linear.loc[index[col], 'coef'] = float(reg.coef_)
-                linear.loc[index[col], 'inter'] = float(reg.intercept_)
-                linear.loc[index[col], 'r2'] = r2_score(uobs, u_pred)
+        lb, ub = np.nanpercentile(self.scaling, [10, 90])
+        self.velocity_genes = (
+            self.velocity_genes
+            & (self.scaling > np.min([lb, 0.03]))
+            & (self.scaling < np.max([ub, 3]))
+        )
+        print (f'# of velocity genes {self.velocity_genes.sum()} (Criterion: std of un/spliced reads should be moderate, w/o extreme values)')
 
-            self.adata.var['velocity_inter'] = np.array(linear['inter'].values)
-            self.adata.var['velocity_gamma'] = np.array(linear['coef'].values)
-            self.adata.var['velocity_r2'] = np.array(linear['r2'].values)
-            self.gamma_ref = np.array(linear['coef'].values)
-            self.r2 = np.array(linear['r2'].values)
-
-            self.velocity_genes = (
-                self.velocity_genes
-                & (self.r2 > self.min_r2)
-                & (self.r2 < 0.95)
-                & (np.array(linear['coef'].values) > self.min_ratio)
-                & (np.max(self.Ms > 0, axis=0) > 0)
-                & (np.max(self.Mu > 0, axis=0) > 0)
-            )
-            print (f'# of velocity genes {self.velocity_genes.sum()} (Criterion: positive regression coefficient between un/spliced counts)')
-
-            lb, ub = np.nanpercentile(self.scaling, [10, 90])
-            self.velocity_genes = (
-                self.velocity_genes
-                & (self.scaling > np.min([lb, 0.03]))
-                & (self.scaling < np.max([ub, 3]))
-            )
-            print (f'# of velocity genes {self.velocity_genes.sum()} (Criterion: std of un/spliced reads should be moderate, w/o extreme values)')
-
-    def fit_curve(self, adata, idx, Ms_scale, Mu_scale, rep=1):
+    def fit_curve(self, adata, idx, Ms_scale, Mu_scale):
         physical_devices = tf.config.list_physical_devices('GPU')
 
         if len(physical_devices) == 0 or self.config.GPU == -1:
@@ -246,12 +216,12 @@ class Velocity:
             residual, adata = lagrange(
                 adata, idx=idx,
                 Ms=Ms_scale, Mu=Mu_scale, 
-                rep=rep, config=self.config
+                config=self.config
             )
 
         return residual, adata
 
-    def fit_velo_genes(self, basis='umap', rep=1):
+    def fit_velo_genes(self, basis='umap'):
         idx = self.velocity_genes
         print (f'# of velocity genes {idx.sum()} (Criterion: genes have reads in more than 5% of total cells)')
 
@@ -261,20 +231,14 @@ class Velocity:
         else:
             Ms_scale, Mu_scale = self.Ms, self.Mu
 
-        assert self.config.GENERAL in ['Deterministic', 'Curve', 'Linear'], \
+        assert self.config.GENERAL in ['Deterministic', 'Curve'], \
             'Please specify the correct self.GENERAL in configuration file.'
 
         if self.config.GENERAL == 'Curve':
-            residual, adata = self.fit_curve(self.adata, idx, Ms_scale, Mu_scale, rep=rep)
+            residual, adata = self.fit_curve(self.adata, idx, Ms_scale, Mu_scale)
 
         if self.config.GENERAL == 'Deterministic':
             residual = self.fit_deterministic(idx, self.Ms, self.Mu, Ms_scale, Mu_scale)
-
-        if self.config.GENERAL == 'Linear':
-            self.fit_linear(idx, Ms_scale, Mu_scale, method='kinetic')
-            print (np.sum(self.adata[:, idx].var['kinetic_gene'].values) / \
-                    np.sum(self.adata[:, idx].var['velocity_genes'].values))
-            return self.adata
             
         adata.layers[self.vkey] = residual
 

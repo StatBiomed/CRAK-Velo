@@ -76,7 +76,6 @@ class VelocityGenes(object):
         # 1. raws, all highly variable genes specified by self.N_TOP_GENES will be used
         # 2. offset, linear regression $R^2$ and coefficient with offset, will override self.R2_ADJUST
         # 3. basic, linear regression $R^2$ and coefficient without offset
-        # 4. single gene name, fit this designated gene alone, for model validation purpose only
         # 5. [list of gene names], manually provide a list of genes as velocity genes in string, might improve performance, see scNT
         self.VGENES = 'basic'
 
@@ -85,9 +84,6 @@ class VelocityGenes(object):
         # Note: self.AGENES_R2 = 1 will switch to origianl mode with no amplification
         self.AGENES_R2 = 1
         self.AGENES_THRES = 0.61
-
-        # (bool, experimental) exclude cell that have 0 expression in either un/spliced when contributing to loss function
-        self.FILTER_CELLS = False
 
 class CellInitialization(object):
     def __init__(self):
@@ -98,15 +94,6 @@ class CellInitialization(object):
         # 4. [(gene1, trend1), (gene2, trend2), (gene3, trend3), ...], list of tuples, 
         #    a list of genes with trend can be one of {increase, decrease} 
         self.IROOT = None
-
-        # (int) number of random initializations of time points, default 1
-        # in rare cases, velocity field generated might be reversed, possibly because stably and monotonically changed genes
-        # change this parameter to 2 might do the trick
-        self.NUM_REP = 1
-        # when self.NUM_REP = 2, the following parameter will determine how the second time will be initialized 
-        # re_pre, reverse the inferred cell time of first run
-        # re_init, reverse the initialization time of first run
-        self.NUM_REP_TIME = 're_pre'
 
 class Configuration():
     def __init__(self):
@@ -124,7 +111,7 @@ class Configuration():
         # Gaussian Mixture
         self.BASE_FUNCTION = 'Gaussian'
 
-        # Deterministic Curve Linear
+        # Deterministic Curve
         self.GENERAL = 'Curve'
 
         # (str) embedding format of adata, e.g. pca, tsne, umap, 

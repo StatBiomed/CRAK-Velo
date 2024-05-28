@@ -607,9 +607,12 @@ def init_adata_and_logs(adata, config, normalize=True):
         print (f"Extracted {adata.var[adata.var['highly_variable'] == True].shape[0]} highly variable genes.")
 
         print (f'Computing moments for {len(adata.var)} genes with n_neighbors: {config.N_NEIGHBORS} and n_pcs: {config.N_PCS}')
+        import scanpy as sc
+        sc.pp.pca(adata)
+        sc.pp.neighbors(adata, n_pcs=config.N_PCS, n_neighbors=config.N_NEIGHBORS)
         scv.pp.moments(adata, 
-                        n_pcs=config.N_PCS, 
-                        n_neighbors=config.N_NEIGHBORS)
+                        n_pcs=None, 
+                        n_neighbors=None)
     else:
         scv.pp.neighbors(adata)
 

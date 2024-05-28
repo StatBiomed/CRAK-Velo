@@ -33,40 +33,27 @@ def run_model(
     scv.settings.file_format_figs = 'png'
 
     replicates, pre = None, 1e15
-    adata_second = adata.copy()
 
-    for rep in range(config.NUM_REP):        
-        if rep >= 1:
-            adata = adata_second.copy()
-            adata.obs['latent_time_gm'] = pre_time_gm
+    adata.uns['datapath'] = data_path
+    adata.uns['label'] = label
+    adata.uns['base_function'] = 'Gaussian'
 
-        adata.uns['datapath'] = data_path
-        adata.uns['label'] = label
-        adata.uns['base_function'] = 'Gaussian'
+    if config.BASIS is None:
+        basis_keys = ["pca", "tsne", "umap"]
+        basis = [key for key in basis_keys if f"X_{key}" in adata.obsm.keys()][-1]
+    elif f"X_{config.BASIS}" in adata.obsm.keys():
+        basis = config.BASIS
+    else:
+        raise ValueError('Invalid embedding parameter config.BASIS')
+    adata.uns['basis'] = basis
 
-        if config.BASIS is None:
-            basis_keys = ["pca", "tsne", "umap"]
-            basis = [key for key in basis_keys if f"X_{key}" in adata.obsm.keys()][-1]
-        elif f"X_{config.BASIS}" in adata.obsm.keys():
-            basis = config.BASIS
-        else:
-            raise ValueError('Invalid embedding parameter config.BASIS')
-        adata.uns['basis'] = basis
+    model = Velocity(adata, config=config)
+    model.get_velo_genes()
 
-        if 'scNT' in data_path:
-            import pandas as pd
-            gene_ids = pd.read_csv('../data/scNT/brie_neuron_splicing_time.tsv', delimiter='\t', index_col='GeneID')
-            config.VGENES = list(gene_ids.loc[gene_ids['time_FDR'] < 0.01].index)
+    adata = model.fit_velo_genes(basis=basis)
 
-        model = Velocity(adata, config=config)
-        model.get_velo_genes()
-
-        adata = model.fit_velo_genes(basis=basis, rep=rep)
-        pre_time_gm = adata.obs['latent_time'].values
-
-        if config.GENERAL != 'Linear':
-            replicates = adata if adata.uns['loss'] < pre else replicates
-            pre = adata.uns['loss'] if adata.uns['loss'] < pre else pre
+    replicates = adata if adata.uns['loss'] < pre else replicates
+    pre = adata.uns['loss'] if adata.uns['loss'] < pre else pre
 
     #? change adata to replicates?
     replicates.write(os.path.join(adata.uns['temp'], f'temp_{config.FIT_OPTION}.h5ad'))
@@ -75,4 +62,4 @@ def run_model(
         from .individual_gene import exam_genes
         exam_genes(adata, adata.uns['examine_genes'])
 
-    return replicates if config.GENERAL != 'Linear' else adata
+    return replicates

@@ -74,12 +74,6 @@ class VelocityGenes(object):
         # 5. [list of gene names], manually provide a list of genes as velocity genes in string, might improve performance, see scNT
         self.VGENES = 'basic'
 
-        # (float) threshold of R2 at later stage of the optimization proces
-        # to capture the dynamics of more genes beside initially selected velocity genes
-        # Note: self.AGENES_R2 = 1 will switch to origianl mode with no amplification
-        self.AGENES_R2 = 1
-        self.AGENES_THRES = 0.61
-
 class CellInitialization(object):
     def __init__(self):
         # (str) criteria for cell latent time initialization, default None
@@ -101,7 +95,7 @@ class Configuration():
 
         # (int) speficy the GPU card for acceleration, default 0
         # -1 will switch to CPU mode
-        self.GPU = 0
+        self.GPU = 5
 
         # Deterministic Curve
         self.GENERAL = 'Curve'

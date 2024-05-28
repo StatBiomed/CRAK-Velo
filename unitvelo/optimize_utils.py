@@ -40,7 +40,6 @@ class Model_Utils():
         self.Ms, self.Mu = Ms, Mu
         self.config = config
         self.gene_log = []
-        self.agenes_thres = int(config.AGENES_THRES * config.MAX_ITER)
 
     def init_vars(self):
         ngenes = self.Ms.shape[1]
@@ -150,10 +149,7 @@ class Model_Utils():
         val = x[1, :] - x[0, :]
         cell_time = np.zeros((Ms.shape[0], Ms.shape[2]))
 
-        if (self.config.AGENES_R2 < 1) & (iter > self.agenes_thres):
-            self.index_list, self.boolean = np.squeeze(tf.where(self.total_genes)), self.total_genes
-        else:
-            self.index_list, self.boolean = np.squeeze(tf.where(self.idx)), self.idx
+        self.index_list, self.boolean = np.squeeze(tf.where(self.idx)), self.idx
 
         for index in range(Ms.shape[2]):
             if index in self.index_list:
@@ -240,7 +236,7 @@ class Model_Utils():
         
         return args_to_optimize
     
-    def get_log(self, loss, amplify=False, iter=None):
+    def get_log(self, loss, iter=None):
         self.finite = tf.math.is_finite(loss) # location of weird genes out of 2000
         glog = self.adata.var.iloc[np.squeeze(tf.where(~self.finite))].index.values 
         
@@ -248,11 +244,6 @@ class Model_Utils():
             if gene not in self.gene_log:
                 logging.info(f'{gene}, iter {iter}')
                 self.gene_log.append(gene)
-            
-            if amplify:
-                if self.adata.var.at[gene, 'amplify_genes'] == True:
-                    logging.info(f'{gene}, iter {iter}, amplify')
-                    self.adata.var.at[gene, 'amplify_genes'] = False
         
         loss = tf.where(self.finite, loss, 0)
         return loss
@@ -264,7 +255,7 @@ class Model_Utils():
         else:
             loss = s_r2 + u_r2 
 
-        loss = self.get_log(loss, amplify=False, iter=iter)
+        loss = self.get_log(loss, iter=iter)
         return loss
     
     def get_stop_cond(self, iter, pre, obj):

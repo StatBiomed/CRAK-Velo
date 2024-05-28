@@ -38,7 +38,6 @@ class Recover_Paras(Model_Utils):
 
         self.idx = idx
         self.scaling = adata.var['scaling'].values
-        self.flag = True
 
         self.init_pars()
         self.init_vars()
@@ -65,8 +64,6 @@ class Recover_Paras(Model_Utils):
             if self.config.AGGREGATE_T:
                 t_cell = tf.reshape(t_cell, (-1, 1))
                 t_cell = tf.broadcast_to(t_cell, self.adata.shape)
-            
-            # plot_phase_portrait(self.adata, args, Ms, Mu, s_predict, u_predict)
 
         else:
             boundary = (self.t - 3 * (1 / sqrt(2 * exp(self.log_a))), 
@@ -132,113 +129,41 @@ class Recover_Paras(Model_Utils):
         loglik = -1 / 2 / n * np.sum(distx) / varx
         loglik -= 1 / 2 * np.log(2 * np.pi * varx)
 
-    def amplify_gene(self, t_cell, iter):
-        from sklearn import linear_model
-        from sklearn.metrics import r2_score
-        print (f'\nExaming genes which are not initially considered as velocity genes')
-
-        r2 = np.repeat(-1., self.Ms.shape[1])
-        reg = linear_model.LinearRegression()
-
-        for col in tqdm(range(self.Ms.shape[1])):
-            if not self.idx[col]:
-                y = np.reshape(self.Ms[:, col], (-1, 1))
-                x = np.reshape(t_cell, (-1, 1))
-
-                reg.fit(x, y)
-                y_pred = reg.predict(x)
-                r2[col] = r2_score(y, y_pred)
-        
-        self.agenes = r2 >= self.config.AGENES_R2
-        self.adata.var['amplify_r2'] = r2
-        self.adata.var['amplify_genes'] = self.agenes
-        self.flag = False
-
-        _ = self.get_log(sum(self.s_r2, axis=0) + sum(self.u_r2, axis=0), True, iter=iter)
-        self.used_agenes = np.array(self.adata.var['amplify_genes'].values)
-        self.total_genes = self.idx | self.used_agenes
-
-        print (f'# of amplified genes {self.agenes.sum()}, # of used {self.used_agenes.sum()}')
-        print (f'# of (velocity + used) genes {self.total_genes.sum()}')
-
-        self.infi_genes = ~np.logical_xor(~self.agenes, self.used_agenes)
-        self.adata.var['amplify_infi'] = self.infi_genes
-        print (f'# of infinite (or nan) genes {self.infi_genes.sum()}')
-
     def compute_loss(self, args, t_cell, Ms, Mu, iter, progress_bar):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
         udiff, sdiff = Mu - self.u_func, Ms - self.s_func
 
-        if (self.config.AGENES_R2 < 1) & (iter > self.agenes_thres):
-            self.u_r2 = square(udiff)
-            self.s_r2 = square(sdiff) 
+        self.u_r2 = square(udiff)
+        self.s_r2 = square(sdiff)
 
-            if self.flag:
-                self.amplify_gene(t_cell.numpy()[:, 0], iter=iter)
+        if (self.config.FIT_OPTION == '1') & \
+            (iter > int(0.9 * self.config.MAX_ITER)) & self.config.REG_LOSS:
+            self.s_r2 = self.s_r2 + \
+                std(Ms, axis=0) * self.config.REG_TIMES * \
+                exp(-square(args[4] - 0.5) / self.config.REG_SCALE)
 
-            if iter > int(0.9 * self.config.MAX_ITER) & self.config.REG_LOSS:
-                self.s_r2 = self.s_r2 + \
-                    std(Ms, axis=0) * self.config.REG_TIMES * \
-                    exp(-square(args[4] - 0.5) / self.config.REG_SCALE)
+        #! convert for self.varu to account for scaling in pre-processing
+        self.vars = mean(self.s_r2, axis=0) \
+            - square(mean(tf.math.sign(sdiff) * sqrt(self.s_r2), axis=0))
+        self.varu = mean(self.u_r2 * square(self.scaling), axis=0) \
+            - square(mean(tf.math.sign(udiff) * sqrt(self.u_r2) * self.scaling, axis=0))
 
-            #compute variance, equivalent to np.var(np.sign(sdiff) * np.sqrt(distx))
-            self.vars = mean(self.s_r2, axis=0) \
-                - square(mean(tf.math.sign(sdiff) * sqrt(self.s_r2), axis=0))
-            self.varu = mean(self.u_r2 * square(self.scaling), axis=0) \
-                - square(mean(tf.math.sign(udiff) * sqrt(self.u_r2) * self.scaling, axis=0))
+        self.u_log_likeli = \
+            - (Mu.shape[0] / 2) * log(2 * self.pi * self.varu) \
+            - sum(self.u_r2 * square(self.scaling), axis=0) / (2 * self.varu) 
+        self.s_log_likeli = \
+            - (Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
+            - sum(self.s_r2, axis=0) / (2 * self.vars) 
 
-            #! edge case of mRNAs levels to be the same across all cells
-            self.vars += tf.cast(self.vars == 0, tf.float32)
-            self.varu += tf.cast(self.varu == 0, tf.float32)
-
-            self.u_log_likeli = \
-                - (Mu.shape[0] / 2) * log(2 * self.pi * self.varu) \
-                - sum(self.u_r2 * square(self.scaling), axis=0) / (2 * self.varu) 
-            self.s_log_likeli = \
-                - (Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
-                - sum(self.s_r2, axis=0) / (2 * self.vars) 
-
-            error_1 = np.sum(sum(self.u_r2, axis=0).numpy()[self.total_genes]) / np.sum(self.total_genes)
-            error_2 = np.sum(sum(self.s_r2, axis=0).numpy()[self.total_genes]) / np.sum(self.total_genes)
-            self.se.append(error_1 + error_2)
-            progress_bar.set_description(f'Loss (Total): {self.se[-1]:.3f}, (Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}')
-
-            return self.get_loss(iter,
-                                sum(self.s_r2, axis=0), 
-                                sum(self.u_r2, axis=0))
-
-        else:
-            self.u_r2 = square(udiff)
-            self.s_r2 = square(sdiff)
-
-            if (self.config.FIT_OPTION == '1') & \
-                (iter > int(0.9 * self.config.MAX_ITER)) & self.config.REG_LOSS:
-                self.s_r2 = self.s_r2 + \
-                    std(Ms, axis=0) * self.config.REG_TIMES * \
-                    exp(-square(args[4] - 0.5) / self.config.REG_SCALE)
-
-            #! convert for self.varu to account for scaling in pre-processing
-            self.vars = mean(self.s_r2, axis=0) \
-                - square(mean(tf.math.sign(sdiff) * sqrt(self.s_r2), axis=0))
-            self.varu = mean(self.u_r2 * square(self.scaling), axis=0) \
-                - square(mean(tf.math.sign(udiff) * sqrt(self.u_r2) * self.scaling, axis=0))
-
-            self.u_log_likeli = \
-                - (Mu.shape[0] / 2) * log(2 * self.pi * self.varu) \
-                - sum(self.u_r2 * square(self.scaling), axis=0) / (2 * self.varu) 
-            self.s_log_likeli = \
-                - (Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
-                - sum(self.s_r2, axis=0) / (2 * self.vars) 
-
-            error_1 = np.sum(sum(self.u_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
-            error_2 = np.sum(sum(self.s_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
-            self.se.append(error_1 + error_2)
-            progress_bar.set_description(f'Loss (Total): {self.se[-1]:.3f}, (Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}')
-            
-            self.vgene_loss = self.se[-1]
-            return self.get_loss(iter,
-                                sum(self.s_r2, axis=0), 
-                                sum(self.u_r2, axis=0))
+        error_1 = np.sum(sum(self.u_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
+        error_2 = np.sum(sum(self.s_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
+        self.se.append(error_1 + error_2)
+        progress_bar.set_description(f'Loss (Total): {self.se[-1]:.3f}, (Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}')
+        
+        self.vgene_loss = self.se[-1]
+        return self.get_loss(iter,
+                            sum(self.s_r2, axis=0), 
+                            sum(self.u_r2, axis=0))
 
     def fit_likelihood(self):
         Ms, Mu, t_cell = self.Ms, self.Mu, self.t_cell
@@ -274,21 +199,10 @@ class Recover_Paras(Model_Utils):
 
             stop_cond = self.get_stop_cond(iter, pre, obj)
 
-            if iter > self.agenes_thres + 1:
-                self.m_args = self.get_optimal_res(args, self.m_args)
-                self.m_ur2 = self.get_optimal_res(self.u_r2, self.m_ur2)
-                self.m_sr2 = self.get_optimal_res(self.s_r2, self.m_sr2)
-                self.m_ullf = self.get_optimal_res(self.u_log_likeli, self.m_ullf)
-                self.m_sllf = self.get_optimal_res(self.s_log_likeli, self.m_sllf)
+            if iter == self.config.MAX_ITER - 1 or \
+                tf.math.reduce_all(stop_cond) == True:
 
-            if (iter > self.agenes_thres) & \
-                (iter == self.config.MAX_ITER - 1 or \
-                tf.math.reduce_all(stop_cond) == True or \
-                (min(self.se[self.agenes_thres + 1:]) * 1.1 < self.se[-1] 
-                    if (iter > self.agenes_thres + 1) else False)):
-
-                if (iter > int(0.9 * self.config.MAX_ITER)) & self.config.REG_LOSS & \
-                    (min(self.se[self.agenes_thres:]) * 1.1 >= self.se[-1]):
+                if (iter > int(0.9 * self.config.MAX_ITER)) & self.config.REG_LOSS:
                     self.m_args = args
                     self.m_ur2 = self.u_r2
                     self.m_sr2 = self.s_r2
@@ -298,7 +212,6 @@ class Recover_Paras(Model_Utils):
                 t_cell = self.compute_cell_time(args=self.m_args, iter=iter)
                 _ = self.get_fit_s(self.m_args, t_cell)
                 s_derivative = self.get_s_deri(self.m_args, t_cell)
-                # s_derivative = exp(args[1]) * Mu - exp(args[0]) * Ms
 
                 self.post_utils(iter, self.m_args)
                 break
@@ -308,12 +221,8 @@ class Recover_Paras(Model_Utils):
 
             # convert gradients of variables with unused genes to 0
             # keep other gradients by multiplying 1
-            if (self.config.AGENES_R2 < 1) & (iter > self.agenes_thres):
-                convert = tf.cast(self.total_genes, tf.float32)
-                processed_grads = [g * convert for g in gradients]
-            else:
-                convert = tf.cast(self.idx, tf.float32)
-                processed_grads = [g * convert for g in gradients]
+            convert = tf.cast(self.idx, tf.float32)
+            processed_grads = [g * convert for g in gradients]
 
             optimizer.apply_gradients(zip(processed_grads, args_to_optimize))
             pre = obj
@@ -322,13 +231,10 @@ class Recover_Paras(Model_Utils):
                 t_cell = self.compute_cell_time(args=args, iter=iter)
 
         self.adata.layers['fit_t'] = t_cell.numpy() if self.config.AGGREGATE_T else t_cell
-        self.adata.var['velocity_genes'] = self.total_genes if not self.flag else self.idx
+        self.adata.var['velocity_genes'] = self.idx
         self.adata.layers['fit_t'][:, ~self.adata.var['velocity_genes'].values] = np.nan
 
         return self.get_interim_t(t_cell, self.adata.var['velocity_genes'].values), s_derivative.numpy(), self.adata
-
-    def get_optimal_res(self, current, opt):
-        return current if min(self.se[self.agenes_thres + 1:]) == self.se[-1] else opt
 
     def post_utils(self, iter, args):
         # Reshape un/spliced variance to (ngenes, ) and save
@@ -341,7 +247,7 @@ class Recover_Paras(Model_Utils):
         self.adata.var['fit_intercept'] *= self.scaling
 
         # Plotting function for examining model loss
-        plot_loss(iter, self.se, self.agenes_thres)
+        # plot_loss(iter, self.se, self.agenes_thres)
 
         # Save observations, predictinos and variables locally
         save_vars(self.adata, args, 
@@ -362,9 +268,8 @@ class Recover_Paras(Model_Utils):
             / (self.adata.shape[0] - 1)
         new_adata_col(self.adata, ['fit_sr2', 'fit_ur2'], [r2_spliced.numpy(), r2_unspliced.numpy()])
 
-        tloss = min(self.se[self.agenes_thres + 1:])
         self.adata.uns['loss'] = self.vgene_loss
-        print (f'Total loss {tloss:.3f}, vgene loss {self.vgene_loss:.3f}')
+        print (f'vgene loss {self.vgene_loss:.3f}')
 
     def save_pars(self, paras):
         columns = ['a', 'h', 'gamma', 'beta']

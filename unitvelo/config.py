@@ -31,11 +31,6 @@ class Regularization(object):
         # (float) scaling parameter of the regularizer
         self.REG_SCALE = 1
 
-        # (list of tuples) [(gene1, trend1), (gene2, trend2), (gene3, trend3), ...], 
-        # a list of genes with trend can be one of {increase, decrease}, default None
-        self.GENE_PRIOR = None
-        self.GENE_PRIOR_SCALE = 5000
-
 class Optimizer(object):
     def __init__(self):
         # (float) learning rate of the main optimizer
@@ -108,16 +103,9 @@ class Configuration():
         # -1 will switch to CPU mode
         self.GPU = 0
 
-        # Gaussian Mixture
-        self.BASE_FUNCTION = 'Gaussian'
-
         # Deterministic Curve
         self.GENERAL = 'Curve'
 
         # (str) embedding format of adata, e.g. pca, tsne, umap, 
         # if None (default), algorithm will choose one automatically
         self.BASIS = None
-
-        # (int, experimental) window size for sliding smoothing of distribution with highest probability
-        # useful when self.DENSITY == 'Max'
-        # self.WIN_SIZE = 50

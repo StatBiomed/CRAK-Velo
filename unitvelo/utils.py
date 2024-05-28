@@ -191,11 +191,8 @@ def save_vars(
     args, 
     fits, 
     fitu, 
-    K=1,
     scaling=1
 ):
-    from .optimize_utils import exp_args
-
     s = pd.DataFrame(data=fits, index=adata.obs.index, columns=adata.var.index)
     u = pd.DataFrame(data=fitu, index=adata.obs.index, columns=adata.var.index)
     ms = pd.DataFrame(data=adata.layers['Ms'], index=adata.obs.index, columns=adata.var.index)
@@ -212,7 +209,7 @@ def save_vars(
     pars = []
     for i in range(len(args)):
         if args[i].shape[0] > 1:
-            for k in range(K):
+            for k in range(1):
                 # par = np.zeros(adata.n_vars) * np.nan
                 par = args[i][k, :].numpy()
                 pars.append(par)
@@ -224,7 +221,7 @@ def save_vars(
     for i, name in enumerate(adata.uns['par_names']):
         var[name] = np.transpose(pars[i])
     
-    columns = exp_args(adata, K=K)
+    columns = ['a', 'h', 'gamma', 'beta']
     for col in columns:
         var[col] = np.exp(var[col])
     
@@ -434,7 +431,6 @@ def subset_prediction(adata_subset, adata, config=None):
     adata.uns['basis'] = adata_subset.uns['basis']
     adata.uns['label'] = adata_subset.uns['label']
     adata.uns['par_names'] = adata_subset.uns['par_names']
-    adata.uns['base_function'] = adata_subset.uns['base_function']
 
     model.total_genes = adata.var['velocity_genes'].values
     model.idx = adata.var['velocity_genes'].values
@@ -535,7 +531,7 @@ def init_config_summary(config=None):
         config = Configuration()
 
     if config.FIT_OPTION == '1':
-        config.DENSITY = 'SVD' if config.GENE_PRIOR == None else 'Raw'
+        config.DENSITY = 'SVD' 
         config.REORDER_CELL = 'Soft_Reorder'
         config.AGGREGATE_T = True
 
@@ -565,7 +561,6 @@ def init_config_summary(config=None):
                     'REORDER_CELL', 
                     'AGGREGATE_T', 
                     'R2_ADJUST', 
-                    'GENE_PRIOR', 
                     'VGENES', 
                     'IROOT']
 

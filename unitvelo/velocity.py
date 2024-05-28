@@ -120,9 +120,6 @@ class Velocity:
         from .utils import prior_trend_valid
         if type(self.config.IROOT) == list:
             self.config.IROOT = prior_trend_valid(self.adata, self.config.IROOT, 'IROOT')
-        
-        if type(self.config.GENE_PRIOR) == list:
-            self.config.GENE_PRIOR = prior_trend_valid(self.adata, self.config.GENE_PRIOR, 'GENE_PRIOR')
 
     def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0

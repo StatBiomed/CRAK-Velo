@@ -3,7 +3,7 @@ import numpy as np
 from scvelo.tools.utils import make_unique_list
 from tqdm import tqdm
 import scvelo as scv
-from .optimize_utils import Model_Utils, exp_args
+from .optimize_utils import Model_Utils
 from .utils import save_vars, new_adata_col, min_max
 from .pl import plot_loss
 
@@ -346,7 +346,7 @@ class Recover_Paras(Model_Utils):
         # Save observations, predictinos and variables locally
         save_vars(self.adata, args, 
                 self.s_func.numpy(), self.u_func.numpy(), 
-                self.K, self.scaling)
+                self.scaling)
 
         #! Model loss, log likelihood and BIC based on unspliced counts
         gene_loss = sum(self.m_ur2, axis=0) / self.Ms.shape[0]
@@ -367,7 +367,7 @@ class Recover_Paras(Model_Utils):
         print (f'Total loss {tloss:.3f}, vgene loss {self.vgene_loss:.3f}')
 
     def save_pars(self, paras):
-        columns = exp_args(self.adata, 1)
+        columns = ['a', 'h', 'gamma', 'beta']
         for i, name in enumerate(self.default_pars_names):
             self.adata.var[f"fit_{name}"] = np.transpose(np.squeeze(paras[i]))
 

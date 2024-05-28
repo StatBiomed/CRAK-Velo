@@ -25,15 +25,6 @@ def col_minmax(matrix, gene_id=None):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
 
-def exp_args(adata, K=1):
-    if adata.uns['base_function'] == 'Gaussian':
-        columns = ['a', 'h', 'gamma', 'beta']
-    else:
-        columns = ['gamma', 'beta']
-        columns.extend([f'a{k}' for k in range(K)])
-
-    return columns
-
 #%%
 class Model_Utils():
     def __init__(
@@ -47,8 +38,6 @@ class Model_Utils():
         self.adata = adata
         self.var_names = var_names
         self.Ms, self.Mu = Ms, Mu
-        self.K = 1
-        self.win_size = 50
         self.config = config
         self.gene_log = []
         self.agenes_thres = int(config.AGENES_THRES * config.MAX_ITER)
@@ -84,15 +73,6 @@ class Model_Utils():
                 tf.Variable(
                     tf.reshape(init_inter, (1, self.adata.n_vars)), 
                     name='intercept')
-
-        if type(self.config.GENE_PRIOR) == list:
-            vgenes_temp = []
-            prior_t = np.ones((1, ngenes), dtype=np.float32) * 0.5
-            for prior in self.config.GENE_PRIOR:
-                prior_t[0][prior[2]] = 1.1 if prior[1] == 'increase' else -0.2
-                vgenes_temp.append(prior + (prior_t[0][prior[2]], ))
-            self.t = tf.Variable(prior_t, name='t')
-            print (f'Modified GENE_PRIOR {vgenes_temp} with init_tau')
 
     def init_pars(self):
         self.default_pars_names = ['gamma', 'beta']
@@ -155,19 +135,6 @@ class Model_Utils():
         return s, u
 
     def max_density(self, dis):
-        if self.config.DENSITY == 'Max':
-            sort_list = np.sort(dis)
-            diff = np.insert(np.diff(sort_list), 0, 0, axis=1)
-            kernel = np.ones(self.win_size)
-
-            loc = []
-            for row in range(dis.shape[0]):
-                idx = np.argmin(np.convolve(diff[row, :], kernel, 'valid'))
-                window = sort_list[row, idx:idx + self.win_size]
-                loc.append(np.mean(window))
-
-            return np.array(loc, dtype=np.float32)
-
         if self.config.DENSITY == 'SVD':
             s, u, v = tf.linalg.svd(dis)
             s = s[0:50]
@@ -177,29 +144,7 @@ class Model_Utils():
             return tf.cast(mean(dis_approx, axis=1), tf.float32)
 
         if self.config.DENSITY == 'Raw':
-            # weight = self.gene_prior_perc(dis)
             return tf.cast(mean(dis, axis=1), tf.float32)
-
-    def gene_prior_perc(self, dis):
-        perc, perc_idx = [], []
-        aggregrate_weight = np.ones((dis.shape[1], ), dtype=np.float32)
-    
-        for prior in self.config.GENE_PRIOR:
-            expr = np.array(self.adata[:, prior[0]].layers['Ms'])
-            perc.append(np.max(expr) * 0.75) # modify 0.75 for parameter tuning
-        
-        perc_total = np.sum(perc)
-        perc = [perc[i] / perc_total for i in range(len(perc))]
-
-        for sequence, prior in enumerate(self.config.GENE_PRIOR):
-            temp_id = np.sum(self.boolean[:prior[2]])
-            aggregrate_weight[temp_id] = perc[sequence] * self.config.GENE_PRIOR_SCALE
-            perc_idx.append(temp_id)
-
-        # print (f'assigned weights of GENE_PRIOR {list(np.around(np.array(perc), 2)), perc_idx}')
-        weight_total = np.sum(aggregrate_weight)
-        aggregrate_weight = [aggregrate_weight[i] / weight_total for i in range(len(aggregrate_weight))]
-        return np.reshape(aggregrate_weight, (1, dis.shape[1]))
 
     def match_time(self, Ms, Mu, s_predict, u_predict, x, iter):
         val = x[1, :] - x[0, :]

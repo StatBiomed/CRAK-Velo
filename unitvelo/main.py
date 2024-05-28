@@ -36,7 +36,6 @@ def run_model(
 
     adata.uns['datapath'] = data_path
     adata.uns['label'] = label
-    adata.uns['base_function'] = 'Gaussian'
 
     if config.BASIS is None:
         basis_keys = ["pca", "tsne", "umap"]

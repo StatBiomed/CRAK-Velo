@@ -134,12 +134,11 @@ class Validation():
 
     def plot_range(self, gene_name, adata, ctype=None):
         #! solving the scaling of unspliced problem afterwards
-        from .optimize_utils import exp_args
         from .optimize_utils import Model_Utils
         validate = Model_Utils(config=adata.uns['config'])
         self.vars_trends(gene_name, adata)
 
-        columns = exp_args(adata)
+        columns = ['a', 'h', 'gamma', 'beta']
         for col in columns:
             self.para[col] = np.log(self.para[col])
 

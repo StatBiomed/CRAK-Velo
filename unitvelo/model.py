@@ -4,8 +4,9 @@ from scvelo.tools.utils import make_unique_list
 from tqdm import tqdm
 import scvelo as scv
 from .optimize_utils import Model_Utils
-from .utils import save_vars, new_adata_col, min_max
-from .pl import plot_loss
+from .utils import save_vars, min_max
+from packaging import version
+import os
 
 exp = tf.math.exp
 log = tf.math.log
@@ -139,8 +140,6 @@ class Recover_Paras(Model_Utils):
                             sum(self.u_r2, axis=0))
 
     def fit_likelihood(self):
-        from packaging import version
-        import os
         os.environ['TF_USE_LEGACY_KERAS'] = '1'
         if version.parse(tf.__version__) >= version.parse('2.11.0'):
             optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.config.LEARNING_RATE, amsgrad=True)
@@ -170,7 +169,7 @@ class Recover_Paras(Model_Utils):
                 _ = self.get_fit_s(args, self.t_cell)
                 s_derivative = self.get_s_deri(args, self.t_cell)
 
-                self.post_utils(iter, args)
+                self.post_utils(args)
                 break
 
             args_to_optimize = self.get_opt_args(iter, args)
@@ -193,7 +192,7 @@ class Recover_Paras(Model_Utils):
 
         return self.get_interim_t(self.t_cell, self.adata.var['velocity_genes'].values), s_derivative.numpy(), self.adata
 
-    def post_utils(self, iter, args):
+    def post_utils(self, args):
         # Reshape un/spliced variance to (ngenes, ) and save
         self.adata.var['fit_vars'] = np.squeeze(self.vars)
         self.adata.var['fit_varu'] = np.squeeze(self.varu)
@@ -211,16 +210,17 @@ class Recover_Paras(Model_Utils):
         #! Model loss, log likelihood and BIC based on unspliced counts
         gene_loss = sum(self.u_r2, axis=0) / self.Ms.shape[0]
 
-        list_name = ['fit_loss', 'fit_llf']
-        list_data = [gene_loss.numpy(), self.u_log_likeli.numpy()]
-        new_adata_col(self.adata, list_name, list_data)
+        self.adata.var['fit_loss'] = gene_loss.numpy()
+        self.adata.var['fit_llf'] = self.u_log_likeli.numpy()
 
         # Mimimum loss during optimization, might not be the actual minimum
         r2_spliced = 1 - sum(self.s_r2, axis=0) / var(self.Ms, axis=0) \
             / (self.adata.shape[0] - 1)
         r2_unspliced = 1 - sum(self.u_r2, axis=0) / var(self.Mu, axis=0) \
             / (self.adata.shape[0] - 1)
-        new_adata_col(self.adata, ['fit_sr2', 'fit_ur2'], [r2_spliced.numpy(), r2_unspliced.numpy()])
+
+        self.adata.var['fit_sr2'] = r2_spliced.numpy()
+        self.adata.var['fit_ur2'] = r2_unspliced.numpy()
 
     def save_pars(self, paras):
         columns = ['a', 'h', 'gamma', 'beta']

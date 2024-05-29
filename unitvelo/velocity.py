@@ -14,7 +14,6 @@ class Velocity:
         adata=None,
         min_ratio=0.01,
         min_r2=0.01,
-        fit_offset=False,
         perc=[5, 95],
         vkey='velocity',
         config=None
@@ -35,7 +34,6 @@ class Velocity:
         self.velocity_genes = np.ones(n_vars, dtype=bool)
         self.residual_scale = np.zeros([n_obs, n_vars], dtype=np.float32)
     
-        self.fit_offset = fit_offset
         self.config = config
 
     def get_velo_genes(self):

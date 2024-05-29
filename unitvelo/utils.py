@@ -25,15 +25,6 @@ def get_cgene_list():
 
     return s_genes_list, g2m_genes_list
 
-def new_adata_col(adata, var_names, values):
-    for i, name in enumerate(var_names):
-        # adata.var[name] = np.zeros(adata.n_vars) * np.nan
-        adata.var[name] = values[i]
-
-def col_minmax(matrix):
-    return (matrix - np.min(matrix, axis=0)) \
-        / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
-
 def remove_dir(data_path, adata):
     import shutil
     dir = os.path.split(data_path)[0]

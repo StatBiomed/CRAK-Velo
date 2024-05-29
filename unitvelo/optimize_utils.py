@@ -13,9 +13,6 @@ mean = tf.math.reduce_mean
 log = tf.math.log
 sqrt = tf.math.sqrt
 
-def inv(obj):
-    return tf.math.reciprocal(obj + 1e-6)
-
 def col_minmax(matrix, gene_id=None):
     if gene_id != None:
         if (np.max(matrix, axis=0) == np.min(matrix, axis=0)):
@@ -39,7 +36,6 @@ class Model_Utils():
         self.var_names = var_names
         self.Ms, self.Mu = Ms, Mu
         self.config = config
-        self.gene_log = []
 
     def init_vars(self):
         ngenes = self.Ms.shape[1]
@@ -77,17 +73,9 @@ class Model_Utils():
         self.default_pars_names = ['gamma', 'beta']
         self.default_pars_names += ['offset', 'a', 't', 'h', 'intercept']
 
-    def init_weights(self, weighted=False):
+    def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
         weights = np.array(nonzero_s & nonzero_u, dtype=bool)
-
-        if weighted:
-            ub_s = np.percentile(self.s[weights], self.perc)
-            ub_u = np.percentile(self.u[weights], self.perc)
-            if ub_s > 0:
-                weights &= np.ravel(self.s <= ub_s)
-            if ub_u > 0:
-                weights &= np.ravel(self.u <= ub_u)
 
         self.weights = tf.cast(weights, dtype=tf.float32)
         self.nobs = np.sum(weights, axis=0)

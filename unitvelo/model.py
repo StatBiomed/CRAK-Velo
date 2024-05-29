@@ -46,7 +46,7 @@ class Recover_Paras(Model_Utils):
         self.t_cell = self.compute_cell_time(args=None)
         self.pi = tf.constant(np.pi, dtype=tf.float32)
 
-    def compute_cell_time(self, args=None, iter=None, show=False):
+    def compute_cell_time(self, args=None, show=False):
         if args != None:
             x = self.init_time((0, 1), (3000, self.adata.n_vars))
 
@@ -56,7 +56,7 @@ class Recover_Paras(Model_Utils):
             Mu = tf.expand_dims(self.Mu, axis=1) # n 1 d
             Ms = tf.expand_dims(self.Ms, axis=1)
 
-            t_cell = self.match_time(Ms, Mu, s_predict, u_predict, x.numpy(), iter)
+            t_cell = self.match_time(Ms, Mu, s_predict, u_predict, x.numpy())
 
             if self.config.AGGREGATE_T:
                 t_cell = tf.reshape(t_cell, (-1, 1))
@@ -79,20 +79,6 @@ class Recover_Paras(Model_Utils):
                         self.adata.obs['gcount'].values.reshape(-1, 1), 
                         self.adata.shape), 
                     tf.float32)
-
-            elif type(self.config.IROOT) == list:
-                t_cell, perc = [], []
-                for prior in self.config.IROOT:
-                    expr = np.array(self.adata[:, prior[0]].layers['Ms'])
-
-                    perc.append(np.max(expr) * 0.75) # modify 0.75 for parameter tuning
-                    t_cell.append(min_max(expr) if prior[1] == 'increase' else 1 - min_max(expr))
-                
-                perc_total = np.sum(perc)
-                perc = [perc[i] / perc_total for i in range(len(perc))]
-                print (f'assigned weights of IROOT {list(np.around(np.array(perc), 2))}')
-                t_cell = [perc[i] * t_cell[i] for i in range(len(perc))]
-                t_cell = tf.cast(tf.broadcast_to(np.sum(t_cell, axis=0).reshape(-1, 1), self.adata.shape), tf.float32)
 
             elif self.config.IROOT in self.adata.obs[self.adata.uns['label']].values:
                 print ('Use diffusion pseudotime as initial.')
@@ -153,10 +139,11 @@ class Recover_Paras(Model_Utils):
                             sum(self.u_r2, axis=0))
 
     def fit_likelihood(self):
-        Ms, Mu, t_cell = self.Ms, self.Mu, self.t_cell
-        log_gamma, log_beta, offset = self.log_gamma, self.log_beta, self.offset
-        intercept = self.intercept
-        log_a, t, log_h = self.log_a, self.t, self.log_h
+        # Ms, Mu, t_cell = self.Ms, self.Mu, self.t_cell
+        # log_gamma, log_beta, offset = self.log_gamma, self.log_beta, self.offset
+        # intercept = self.intercept
+        # log_a, t, log_h = self.log_a, self.t, self.log_h
+        print ('111111111111111111111111111111111111111111')
 
         from packaging import version
         import os
@@ -166,28 +153,28 @@ class Recover_Paras(Model_Utils):
         else:
             optimizer = tf.keras.optimizers.Adam(learning_rate=self.config.LEARNING_RATE, amsgrad=True)
         
-        pre = tf.repeat(1e6, Ms.shape[1]) # (2000, )
+        pre = tf.repeat(1e6, self.Ms.shape[1]) # (2000, )
 
         progress_bar = tqdm(range(self.config.MAX_ITER))
         for iter in progress_bar:
             with tf.GradientTape() as tape:                
                 args = [
-                    log_gamma, 
-                    log_beta, 
-                    offset, 
-                    log_a, 
-                    t, 
-                    log_h, 
-                    intercept
+                    self.log_gamma, 
+                    self.log_beta, 
+                    self.offset, 
+                    self.log_a, 
+                    self.t, 
+                    self.log_h, 
+                    self.intercept
                 ]
-                obj = self.compute_loss(args, t_cell, Ms, Mu, iter, progress_bar)
+                obj = self.compute_loss(args, self.t_cell, self.Ms, self.Mu, iter, progress_bar)
 
             stop_cond = self.get_stop_cond(iter, pre, obj)
 
             if iter == self.config.MAX_ITER - 1 or tf.math.reduce_all(stop_cond) == True:
-                t_cell = self.compute_cell_time(args=args, iter=iter)
-                _ = self.get_fit_s(args, t_cell)
-                s_derivative = self.get_s_deri(args, t_cell)
+                self.t_cell = self.compute_cell_time(args=args)
+                _ = self.get_fit_s(args, self.t_cell)
+                s_derivative = self.get_s_deri(args, self.t_cell)
 
                 self.post_utils(iter, args)
                 break
@@ -204,13 +191,13 @@ class Recover_Paras(Model_Utils):
             pre = obj
 
             if iter > 0 and int(iter % 800) == 0:
-                t_cell = self.compute_cell_time(args=args, iter=iter)
+                self.t_cell = self.compute_cell_time(args=args)
 
-        self.adata.layers['fit_t'] = t_cell.numpy() if self.config.AGGREGATE_T else t_cell
+        self.adata.layers['fit_t'] = self.t_cell.numpy() if self.config.AGGREGATE_T else self.t_cell
         self.adata.var['velocity_genes'] = self.idx
         self.adata.layers['fit_t'][:, ~self.adata.var['velocity_genes'].values] = np.nan
 
-        return self.get_interim_t(t_cell, self.adata.var['velocity_genes'].values), s_derivative.numpy(), self.adata
+        return self.get_interim_t(self.t_cell, self.adata.var['velocity_genes'].values), s_derivative.numpy(), self.adata
 
     def post_utils(self, iter, args):
         # Reshape un/spliced variance to (ngenes, ) and save

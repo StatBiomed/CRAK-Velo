@@ -131,11 +131,11 @@ class Model_Utils():
         if self.config.DENSITY == 'Raw':
             return tf.cast(mean(dis, axis=1), tf.float32)
 
-    def match_time(self, Ms, Mu, s_predict, u_predict, x, iter):
+    def match_time(self, Ms, Mu, s_predict, u_predict, x):
         val = x[1, :] - x[0, :]
         cell_time = np.zeros((Ms.shape[0], Ms.shape[2]))
 
-        self.index_list, self.boolean = np.squeeze(tf.where(self.idx)), self.idx
+        self.index_list = np.squeeze(tf.where(self.idx))
 
         for index in range(Ms.shape[2]):
             if index in self.index_list:

@@ -77,8 +77,6 @@ class CellInitialization(object):
         # 1. None, initialized based on the exact order of input expression matrix
         # 2. gcount, str, initialized based on gene counts (https://www.science.org/doi/abs/10.1126/science.aax0249)
         # 3. cluster name, str, use diffusion map based time as initialization
-        # 4. [(gene1, trend1), (gene2, trend2), (gene3, trend3), ...], list of tuples, 
-        #    a list of genes with trend can be one of {increase, decrease} 
         self.IROOT = None
 
 class Configuration():
@@ -97,5 +95,5 @@ class Configuration():
         # Deterministic Curve
         self.GENERAL = 'Curve'
 
-        # (str) embedding format of adata, e.g. X_pca, X_tsne, X_umap, 
-        self.BASIS = 'X_tsne'
+        # (str) embedding format of adata, e.g. pca, tsne, umap, 
+        self.BASIS = 'tsne'

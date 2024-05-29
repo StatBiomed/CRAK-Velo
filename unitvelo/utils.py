@@ -454,7 +454,7 @@ def subset_prediction(adata_subset, adata, config=None):
     Mu = tf.expand_dims(adata.layers['Mu'] / scaling, axis=1) # n 1 d
     Ms = tf.expand_dims(adata.layers['Ms'], axis=1)
 
-    t_cell = model.match_time(Ms, Mu, s_predict, u_predict, x.numpy(), config.MAX_ITER)
+    t_cell = model.match_time(Ms, Mu, s_predict, u_predict, x.numpy())
     t_cell = np.reshape(t_cell, (-1, 1))
     t_cell = np.broadcast_to(t_cell, adata.shape)
 

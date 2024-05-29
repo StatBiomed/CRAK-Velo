@@ -30,149 +30,9 @@ def new_adata_col(adata, var_names, values):
         # adata.var[name] = np.zeros(adata.n_vars) * np.nan
         adata.var[name] = values[i]
 
-def get_cycle_gene(adata):
-    from .utils import get_cgene_list
-    s_genes_list, g2m_genes_list = get_cgene_list()
-
-    # var = adata.var.loc[adata.var['velocity_genes'] == True]
-    phase_s, phase_g2 = [], []
-
-    for gene in adata.var.index:
-        if gene in s_genes_list:
-            phase_s.append(gene)
-        if gene in g2m_genes_list:
-            phase_g2.append(gene)
-    
-    return phase_s, phase_g2
-
-def col_corrcoef(raw, fit):
-    from .utils import min_max
-
-    res = []
-    for col in range(raw.shape[1]):
-        corr = np.corrcoef(min_max(raw[:, col]), min_max(fit[:, col]))[0][1]
-        res.append(corr)
-        
-    return np.array(res)
-
-def col_spearman(raw, fit):
-    from scipy.stats import spearmanr
-    from .utils import min_max
-
-    res = []
-    for col in range(raw.shape[1]):
-        results, _ = spearmanr(min_max(raw[:, col]), min_max(fit[:, col]))
-        res.append(results)
-
-    return np.array(res)
-
-def col_spearman_unorm(raw, fit):
-    from scipy.stats import spearmanr
-
-    res = []
-    for col in range(raw.shape[1]):
-        results, _ = spearmanr(raw[:, col], fit[:, col])
-        res.append(results)
-
-    return np.array(res)
-
-def gene_level_spearman(adata, iroot=None, n_top_genes=2000, file_name=None):
-    """
-    Spearman correlation between the expression profiles fitness 
-    of the top-down (scVelo Dynamical mode) or 
-    bottom-up strategies (UniTVelo Independent mode)
-    Could serve as a systematic comparison (e.g. the entire transcriptome) 
-    between two methods    
-    """
-    
-    import scvelo as scv
-    import scanpy as sc
-    import numpy as np
-    import pandas as pd
-    from .utils import col_spearman
-    from scipy.stats import spearmanr
-
-    print ('---> Running scVelo dynamical mode')
-    scvdata = scv.read(adata.uns['datapath'])
-    scv.pp.filter_and_normalize(scvdata, min_shared_counts=20, n_top_genes=n_top_genes)
-    scv.pp.moments(scvdata, n_pcs=30, n_neighbors=30)
-    scv.tl.recover_dynamics(scvdata, n_jobs=20)
-    scv.tl.velocity(scvdata, mode='dynamical')
-    scv.tl.latent_time(scvdata)
-
-    print ('---> Caculating spearman correlation with reference')
-    if 'organoids' in adata.uns['datapath']:
-        scvdata.var.index = scvdata.var['gene'].values
-
-    index = adata.var.loc[adata.var['velocity_genes'] == True].index.intersection(scvdata.var.loc[scvdata.var['velocity_genes'] == True].index)
-    tadata = adata[:, index].layers['fit_t']
-    tscv = scvdata[:, index].layers['fit_t']
-
-    if iroot != None:
-        print ('---> Generating reference with diffusion pseudotime')
-        sc.tl.diffmap(adata)
-        adata.uns['iroot'] = np.flatnonzero(adata.obs[adata.uns['label']] == iroot)[0]
-        sc.tl.dpt(adata)
-
-        gt = adata.obs['dpt_pseudotime'].values
-        gt = np.broadcast_to(np.reshape(gt, (-1, 1)), tadata.shape)
-        resadata = col_spearman(gt, tadata)
-        resscv = col_spearman(gt, tscv)
-
-        results, _ = spearmanr(min_max(scvdata.obs['latent_time']), min_max(gt))
-        print (np.reshape(results, (-1, 1)))
-
-    if file_name != None:
-        print ('---> Generating reference pseudotime with Slingshot')
-        slingshot = pd.read_csv(f'./slingshot/{file_name}')
-        slingshot = slingshot['x'].values
-
-        slingshot = np.broadcast_to(np.reshape(slingshot, (-1, 1)), tadata.shape)
-        resadata = col_spearman(slingshot, tadata)
-        resscv = col_spearman(slingshot, tscv)
-
-        results, _ = spearmanr(min_max(scvdata.obs['latent_time']), min_max(slingshot[:, 0]))
-        print (np.reshape(results, (-1, 1)))
-
-    corr = pd.DataFrame(index=index, columns=['UniTVelo', 'scVelo'])
-    corr['UniTVelo'] = np.reshape(resadata, (-1, 1))
-    corr['scVelo'] = np.reshape(resscv, (-1, 1))
-
-    return corr['UniTVelo'].values, corr['scVelo'].values, corr
-
-def gene_level_comparison(corr):
-    import seaborn as sns
-    import matplotlib.pyplot as plt
-
-    sns.boxplot(data=corr)
-    plt.title('Comparison of gene-specific time', fontsize=12)
-    plt.ylabel('Spearman Correlation', fontsize=12)
-    plt.show()
-    plt.close()
-
-    sns.scatterplot(x='UniTVelo', y='scVelo', data=corr)
-    plt.axline((0, 0), (0.5, 0.5), color='r')
-    plt.show()
-    plt.close()
-
-def col_mse(raw, fit):
-    from sklearn.metrics import mean_squared_error
-
-    res = []
-    for col in range(raw.shape[1]):
-        results = mean_squared_error(raw[:, col], fit[:, col])
-        res.append(results)
-    return np.array(res)
-
 def col_minmax(matrix):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
-
-def inv_prob(obs, fit):
-    temp = np.abs(obs - fit)
-    temp = np.log(np.sum(temp, axis=0))
-    temp = np.exp(-temp)
-    return temp / np.sum(temp)
 
 def remove_dir(data_path, adata):
     import shutil
@@ -271,30 +131,6 @@ def R2(residual, total):
             np.sum(total * total, axis=0)
     r2[np.isnan(r2)] = 0
     return r2
-
-def OLS(x, y):
-    mean_x, mean_y = np.mean(x, axis=0), np.mean(y, axis=0)
-    numerator = np.sum(x * y - mean_y * x, axis=0)
-    denominator = np.sum(x ** 2 - mean_x * x, axis=0)
-
-    coef_ = numerator / denominator
-    inter_ = mean_y - coef_ * mean_x
-    return coef_, inter_
-
-def get_model_para(adata):
-    var = adata.var.loc[adata.var['velocity_genes'] == True]
-    var = var[[
-        'scaling', 'fit_vars',
-        'fit_varu', 'fit_gamma', 'fit_beta', 'fit_offset', 
-        'fit_a', 'fit_t', 'fit_h', 
-        'fit_intercept', 'fit_loss', 'fit_bic', 
-        'fit_llf', 'fit_sr2', 'fit_ur2'
-    ]]
-
-    if 're_transit' in adata.var.columns:
-        var[0].extend(['qua_r2', 'rbf_r2', 're_transit'])
-
-    return var
 
 def reverse_transient(adata, time_metric='latent_time'):
     from scipy.optimize import curve_fit
@@ -499,30 +335,6 @@ def subset_prediction(adata_subset, adata, config=None):
     adata.write(os.path.join(NEW_DIR, f'predict_adata.h5ad'))
 
     return adata
-
-def prior_trend_valid(adata, gene_list=None, name='IROOT'):
-    import sys
-    vgenes_temp = []
-    vgenes = adata.var.loc[adata.var['velocity_genes'] == True].index
-
-    file_path = os.path.join(adata.uns['temp'], 'vgenes.txt')
-    with open(file_path, 'w') as fp:
-        for item in vgenes:
-            fp.write("%s\n" % item)
-
-    for prior in gene_list:
-        if prior[0] not in vgenes:
-            print (f'{prior[0]} of {name} has not been identified as a velocity gene')
-        else:
-            vgenes_temp.append(prior + (list(adata.var.index).index(prior[0]), ))
-    
-    if len(vgenes_temp) == 0:
-        print (f'---> No genes has been identified as velocity genes')
-        print (f'Consider selecting one from {file_path}')
-        sys.exit()
-    else:
-        print (f'Modified {name} {vgenes_temp} with index')
-        return vgenes_temp
 
 def init_config_summary(config=None):
     from .config import Configuration

@@ -3,7 +3,6 @@ import os
 import pandas as pd
 from .model import lagrange
 from .utils import make_dense, get_weight, R2
-import scvelo as scv
 import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -36,7 +35,6 @@ class Velocity:
         self.velocity_genes = np.ones(n_vars, dtype=bool)
         self.residual_scale = np.zeros([n_obs, n_vars], dtype=np.float32)
     
-        self.perc = perc
         self.fit_offset = fit_offset
         self.config = config
 
@@ -112,39 +110,14 @@ class Velocity:
 
         self.adata.var['scaling'] = self.scaling
         self.adata.var['velocity_genes'] = self.velocity_genes
-        self.adata.uns[f"{self.vkey}_params"] = {"mode": self.config.GENERAL, "perc": self.perc}
         
         if np.sum(self.velocity_genes) < 2:
             print ('---> Low signal in splicing dynamics.')
-
-        from .utils import prior_trend_valid
-        if type(self.config.IROOT) == list:
-            self.config.IROOT = prior_trend_valid(self.adata, self.config.IROOT, 'IROOT')
 
     def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
         weights = np.array(nonzero_s & nonzero_u, dtype=bool)
         self.nobs = np.sum(weights, axis=0)
-
-    def fit_deterministic(self, idx, Ms, Mu, Ms_scale, Mu_scale):
-        df_gamma = pd.DataFrame(index=self.gene_index, data=0, 
-            dtype=np.float32, columns=['coef', 'inter'])
-
-        if self.fit_offset:
-            pass
-
-        else:
-            weights_new = get_weight(Ms, Mu, perc=self.perc)
-            x, y = weights_new * Ms_scale, weights_new * Mu_scale
-            df_gamma['coef'][idx] = np.sum(y * x, axis=0) / np.sum(x * x, axis=0)
-
-        residual = self.Mu \
-            - np.broadcast_to(df_gamma['coef'].values, self.Mu.shape) * self.Ms \
-            - np.broadcast_to(df_gamma['inter'].values, self.Mu.shape)
-        
-        self.adata.var['velocity_gamma'] = df_gamma['coef'].values
-        self.adata.var['intercept'] = df_gamma['inter'].values
-        return residual
 
     def fit_linear(self, Ms, Mu):
         from sklearn import linear_model
@@ -228,15 +201,7 @@ class Velocity:
         else:
             Ms_scale, Mu_scale = self.Ms, self.Mu
 
-        assert self.config.GENERAL in ['Deterministic', 'Curve'], \
-            'Please specify the correct self.GENERAL in configuration file.'
-
-        if self.config.GENERAL == 'Curve':
-            residual, adata = self.fit_curve(self.adata, idx, Ms_scale, Mu_scale)
-
-        if self.config.GENERAL == 'Deterministic':
-            residual = self.fit_deterministic(idx, self.Ms, self.Mu, Ms_scale, Mu_scale)
-            
+        residual, adata = self.fit_curve(self.adata, idx, Ms_scale, Mu_scale)
         adata.layers[self.vkey] = residual
         
         if self.config.FIT_OPTION == '1':

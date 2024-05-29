@@ -92,8 +92,5 @@ class Configuration():
         # -1 will switch to CPU mode
         self.GPU = 5
 
-        # Deterministic Curve
-        self.GENERAL = 'Curve'
-
         # (str) embedding format of adata, e.g. pca, tsne, umap, 
         self.BASIS = 'tsne'

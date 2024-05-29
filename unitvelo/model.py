@@ -139,12 +139,6 @@ class Recover_Paras(Model_Utils):
                             sum(self.u_r2, axis=0))
 
     def fit_likelihood(self):
-        # Ms, Mu, t_cell = self.Ms, self.Mu, self.t_cell
-        # log_gamma, log_beta, offset = self.log_gamma, self.log_beta, self.offset
-        # intercept = self.intercept
-        # log_a, t, log_h = self.log_a, self.t, self.log_h
-        print ('111111111111111111111111111111111111111111')
-
         from packaging import version
         import os
         os.environ['TF_USE_LEGACY_KERAS'] = '1'

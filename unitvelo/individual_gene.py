@@ -108,9 +108,6 @@ class Validation():
         df['labels'] = self.label
         sns.scatterplot(x=x, y=y, data=df, hue='labels', sizes=1, palette=self.palette, ax=loc)
 
-    def putative_trans_time(self):
-        pass
-
     def vars_trends(self, gene_name, adata):
         par_names = adata.uns['par_names']
         para = pd.DataFrame(index=par_names, columns=['Values'])
@@ -169,22 +166,6 @@ class Validation():
 
         plt.show()
 
-    def plot_scv_fit(self, gene_name, adata):
-        DIR = adata.uns['temp']
-        self.mu = pd.read_csv(f'{DIR}/Mu.csv', index_col=0).add_suffix('_u')
-        self.ms = pd.read_csv(f'{DIR}/Ms.csv', index_col=0).add_suffix('_s')
-
-        self.fu = pd.read_csv(f'{DIR}/scvu.csv', index_col=0).add_suffix(f'_fitu')
-        self.fs = pd.read_csv(f'{DIR}/scvs.csv', index_col=0).add_suffix(f'_fits')
-
-        self.lt = adata.obs['latent_time'].values
-        self.label = adata.obs[adata.uns['label']].values
-
-        self.concat_data()
-        self.inspect_genes(gene_name, adata)
-        self.spliced_time(gene_name)
-        self.unspliced_time(gene_name)
-
 def exam_genes(adata, gene_name=None, time_metric='latent_time'):
     display.clear_output(wait=True)
     from .individual_gene import Validation
@@ -195,36 +176,3 @@ def exam_genes(adata, gene_name=None, time_metric='latent_time'):
     examine.spliced_time(gene_name)
     examine.unspliced_time(gene_name)
     examine.vars_trends(gene_name, adata)
-
-def exam_scv(data_path, gene_name, basis, label):
-    try:
-        import scvelo as scv
-    except ModuleNotFoundError:
-        print ('Install scVelo via `pip install scvelo`')
-    
-    adata = scv.read(data_path)
-    adata.uns['datapath'] = data_path
-    adata.uns['label'] = label
-    adata.uns['basis'] = basis
-
-    scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
-    scv.pp.moments(adata, n_pcs=30, n_neighbors=30)
-    scv.tl.recover_dynamics(adata, n_jobs=20)
-    scv.tl.velocity(adata, mode='dynamical')
-    scv.tl.velocity_graph(adata)
-    scv.tl.latent_time(adata)
-
-    if basis != None:
-        scv.pl.velocity_embedding_stream(
-            adata, basis=basis, color=label,
-            legend_loc='far right', dpi=200, 
-            title='scVelo dynamical model'
-        )
-
-        scv.pl.scatter(adata, color='latent_time', color_map='gnuplot', size=50)
-
-    if gene_name != None:    
-        examine = Validation(adata, time_metric='latent_time')
-        examine.plot_scv_fit(gene_name, adata)
-
-    return adata

@@ -34,24 +34,17 @@ def run_model(
 
     adata.uns['datapath'] = data_path
     adata.uns['label'] = label
-
-    if config.BASIS is None:
-        basis_keys = ["pca", "tsne", "umap"]
-        basis = [key for key in basis_keys if f"X_{key}" in adata.obsm.keys()][-1]
-    elif f"X_{config.BASIS}" in adata.obsm.keys():
-        basis = config.BASIS
-    else:
-        raise ValueError('Invalid embedding parameter config.BASIS')
-    adata.uns['basis'] = basis
+    adata.uns['basis'] = config.BASIS
 
     model = Velocity(adata, config=config)
     model.get_velo_genes()
 
-    adata = model.fit_velo_genes(basis=basis)
+    adata = model.fit_velo_genes()
+
+    scv.tl.velocity_graph(adata, sqrt_transform=True)
+    scv.tl.velocity_embedding(adata, basis=adata.uns['basis'])
+    scv.tl.latent_time(adata, min_likelihood=None)
+
     adata.write(os.path.join(adata.uns['temp'], f'temp_{config.FIT_OPTION}.h5ad'))
-    
-    if 'examine_genes' in adata.uns.keys():
-        from .individual_gene import exam_genes
-        exam_genes(adata, adata.uns['examine_genes'])
 
     return adata

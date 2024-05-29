@@ -218,7 +218,7 @@ class Velocity:
 
         return residual, adata
 
-    def fit_velo_genes(self, basis='umap'):
+    def fit_velo_genes(self):
         idx = self.velocity_genes
         print (f'# of velocity genes {idx.sum()} (Criterion: genes have reads in more than 5% of total cells)')
 
@@ -238,11 +238,6 @@ class Velocity:
             residual = self.fit_deterministic(idx, self.Ms, self.Mu, Ms_scale, Mu_scale)
             
         adata.layers[self.vkey] = residual
-
-        if 'examine_genes' not in adata.uns.keys() and basis != None:
-            scv.tl.velocity_graph(adata, sqrt_transform=True)
-            scv.tl.velocity_embedding(adata, basis=basis)
-            scv.tl.latent_time(adata, min_likelihood=None)
         
         if self.config.FIT_OPTION == '1':
             adata.obs['latent_time'] = adata.obs['latent_time_gm']

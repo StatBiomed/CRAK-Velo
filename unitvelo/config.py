@@ -97,6 +97,5 @@ class Configuration():
         # Deterministic Curve
         self.GENERAL = 'Curve'
 
-        # (str) embedding format of adata, e.g. pca, tsne, umap, 
-        # if None (default), algorithm will choose one automatically
-        self.BASIS = None
+        # (str) embedding format of adata, e.g. X_pca, X_tsne, X_umap, 
+        self.BASIS = 'X_tsne'

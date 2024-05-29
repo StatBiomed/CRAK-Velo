@@ -92,20 +92,6 @@ class Model_Utils():
         self.weights = tf.cast(weights, dtype=tf.float32)
         self.nobs = np.sum(weights, axis=0)
 
-    def init_lr(self):
-        if self.config.LEARNING_RATE == None:
-            lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=1e-2,
-                decay_steps=2000, 
-                decay_rate=0.9,
-                staircase=True
-            )
-
-        else:
-            lr_schedule = self.config.LEARNING_RATE
-
-        return lr_schedule
-
     def get_fit_s(self, args, t_cell):
         self.fit_s = exp(args[5]) * \
             exp(-exp(args[3]) * square(t_cell - args[4])) + \
@@ -235,18 +221,6 @@ class Model_Utils():
                 args_to_optimize = [args[0], args[1], args[3], args[5]]
         
         return args_to_optimize
-    
-    def get_log(self, loss, iter=None):
-        self.finite = tf.math.is_finite(loss) # location of weird genes out of 2000
-        glog = self.adata.var.iloc[np.squeeze(tf.where(~self.finite))].index.values 
-        
-        for gene in glog:
-            if gene not in self.gene_log:
-                logging.info(f'{gene}, iter {iter}')
-                self.gene_log.append(gene)
-        
-        loss = tf.where(self.finite, loss, 0)
-        return loss
 
     def get_loss(self, iter, s_r2, u_r2):
         if iter < self.config.MAX_ITER / 2:
@@ -255,8 +229,7 @@ class Model_Utils():
         else:
             loss = s_r2 + u_r2 
 
-        loss = self.get_log(loss, iter=iter)
-        return loss
+        return tf.where(tf.math.is_finite(loss), loss, 0)
     
     def get_stop_cond(self, iter, pre, obj):
         stop_s = tf.zeros(self.Ms.shape[1], tf.bool)

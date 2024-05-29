@@ -58,9 +58,6 @@ class FittingOption(object):
         # (bool, experimental), whether clip negative predictions to 0, default False
         self.ASSIGN_POS_U = False
 
-        # (bool, experimental) cell time restricted to (0, 1) if False, default False
-        self.RESCALE_TIME = False
-
 class VelocityGenes(object):
     def __init__(self):
         # (bool) linear regression $R^2$ on extreme quantile (default) or full data (adjusted)

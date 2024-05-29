@@ -32,8 +32,6 @@ def run_model(
     scv.settings.verbosity = 0
     scv.settings.file_format_figs = 'png'
 
-    replicates, pre = None, 1e15
-
     adata.uns['datapath'] = data_path
     adata.uns['label'] = label
 
@@ -50,15 +48,10 @@ def run_model(
     model.get_velo_genes()
 
     adata = model.fit_velo_genes(basis=basis)
-
-    replicates = adata if adata.uns['loss'] < pre else replicates
-    pre = adata.uns['loss'] if adata.uns['loss'] < pre else pre
-
-    #? change adata to replicates?
-    replicates.write(os.path.join(adata.uns['temp'], f'temp_{config.FIT_OPTION}.h5ad'))
+    adata.write(os.path.join(adata.uns['temp'], f'temp_{config.FIT_OPTION}.h5ad'))
     
     if 'examine_genes' in adata.uns.keys():
         from .individual_gene import exam_genes
         exam_genes(adata, adata.uns['examine_genes'])
 
-    return replicates
+    return adata

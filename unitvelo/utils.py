@@ -611,5 +611,4 @@ def init_adata_and_logs(adata, config, normalize=True):
     else:
         scv.pp.neighbors(adata)
 
-    print ('')
     return adata, data_path

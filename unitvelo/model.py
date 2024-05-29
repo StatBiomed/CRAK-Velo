@@ -48,10 +48,7 @@ class Recover_Paras(Model_Utils):
 
     def compute_cell_time(self, args=None, iter=None, show=False):
         if args != None:
-            boundary = (args[4] - 3 * (1 / sqrt(2 * exp(args[3]))), 
-                        args[4] + 3 * (1 / sqrt(2 * exp(args[3]))))
-            t_range = boundary if self.config.RESCALE_TIME else (0, 1)
-            x = self.init_time(t_range, (3000, self.adata.n_vars))
+            x = self.init_time((0, 1), (3000, self.adata.n_vars))
 
             s_predict, u_predict = self.get_s_u(args, x)
             s_predict = tf.expand_dims(s_predict, axis=0) # 1 3000 d
@@ -66,9 +63,6 @@ class Recover_Paras(Model_Utils):
                 t_cell = tf.broadcast_to(t_cell, self.adata.shape)
 
         else:
-            boundary = (self.t - 3 * (1 / sqrt(2 * exp(self.log_a))), 
-                        self.t + 3 * (1 / sqrt(2 * exp(self.log_a))))
-
             t_cell = self.init_time((0, 1), self.adata.shape)
 
             if self.config.IROOT == 'gcount':
@@ -124,11 +118,6 @@ class Recover_Paras(Model_Utils):
 
         return t_cell
 
-    def get_loglikelihood(self, distx=None, varx=None):
-        n = np.clip(len(distx) - len(self.u) * 0.01, 2, None)
-        loglik = -1 / 2 / n * np.sum(distx) / varx
-        loglik -= 1 / 2 * np.log(2 * np.pi * varx)
-
     def compute_loss(self, args, t_cell, Ms, Mu, iter, progress_bar):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
         udiff, sdiff = Mu - self.u_func, Ms - self.s_func
@@ -157,10 +146,8 @@ class Recover_Paras(Model_Utils):
 
         error_1 = np.sum(sum(self.u_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
         error_2 = np.sum(sum(self.s_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
-        self.se.append(error_1 + error_2)
-        progress_bar.set_description(f'Loss (Total): {self.se[-1]:.3f}, (Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}')
+        progress_bar.set_description(f'Loss (Total): {(error_1 + error_2):.3f}, (Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}')
         
-        self.vgene_loss = self.se[-1]
         return self.get_loss(iter,
                             sum(self.s_r2, axis=0), 
                             sum(self.u_r2, axis=0))
@@ -175,13 +162,11 @@ class Recover_Paras(Model_Utils):
         import os
         os.environ['TF_USE_LEGACY_KERAS'] = '1'
         if version.parse(tf.__version__) >= version.parse('2.11.0'):
-            optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.init_lr, amsgrad=True)
+            optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.config.LEARNING_RATE, amsgrad=True)
         else:
-            optimizer = tf.keras.optimizers.Adam(learning_rate=self.init_lr, amsgrad=True)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=self.config.LEARNING_RATE, amsgrad=True)
         
         pre = tf.repeat(1e6, Ms.shape[1]) # (2000, )
-        self.se, self.m_args, self.m_ur2, self.m_sr2 = [], None, None, None
-        self.m_ullf, self.m_sllf = None, None
 
         progress_bar = tqdm(range(self.config.MAX_ITER))
         for iter in progress_bar:
@@ -199,21 +184,12 @@ class Recover_Paras(Model_Utils):
 
             stop_cond = self.get_stop_cond(iter, pre, obj)
 
-            if iter == self.config.MAX_ITER - 1 or \
-                tf.math.reduce_all(stop_cond) == True:
+            if iter == self.config.MAX_ITER - 1 or tf.math.reduce_all(stop_cond) == True:
+                t_cell = self.compute_cell_time(args=args, iter=iter)
+                _ = self.get_fit_s(args, t_cell)
+                s_derivative = self.get_s_deri(args, t_cell)
 
-                if (iter > int(0.9 * self.config.MAX_ITER)) & self.config.REG_LOSS:
-                    self.m_args = args
-                    self.m_ur2 = self.u_r2
-                    self.m_sr2 = self.s_r2
-                    self.m_ullf = self.u_log_likeli
-                    self.m_sllf = self.s_log_likeli
-
-                t_cell = self.compute_cell_time(args=self.m_args, iter=iter)
-                _ = self.get_fit_s(self.m_args, t_cell)
-                s_derivative = self.get_s_deri(self.m_args, t_cell)
-
-                self.post_utils(iter, self.m_args)
+                self.post_utils(iter, args)
                 break
 
             args_to_optimize = self.get_opt_args(iter, args)
@@ -246,30 +222,24 @@ class Recover_Paras(Model_Utils):
         self.adata.var['fit_beta'] /= self.scaling
         self.adata.var['fit_intercept'] *= self.scaling
 
-        # Plotting function for examining model loss
-        # plot_loss(iter, self.se, self.agenes_thres)
-
         # Save observations, predictinos and variables locally
         save_vars(self.adata, args, 
                 self.s_func.numpy(), self.u_func.numpy(), 
                 self.scaling)
 
         #! Model loss, log likelihood and BIC based on unspliced counts
-        gene_loss = sum(self.m_ur2, axis=0) / self.Ms.shape[0]
+        gene_loss = sum(self.u_r2, axis=0) / self.Ms.shape[0]
 
         list_name = ['fit_loss', 'fit_llf']
-        list_data = [gene_loss.numpy(), self.m_ullf.numpy()]
+        list_data = [gene_loss.numpy(), self.u_log_likeli.numpy()]
         new_adata_col(self.adata, list_name, list_data)
 
         # Mimimum loss during optimization, might not be the actual minimum
-        r2_spliced = 1 - sum(self.m_sr2, axis=0) / var(self.Ms, axis=0) \
+        r2_spliced = 1 - sum(self.s_r2, axis=0) / var(self.Ms, axis=0) \
             / (self.adata.shape[0] - 1)
-        r2_unspliced = 1 - sum(self.m_ur2, axis=0) / var(self.Mu, axis=0) \
+        r2_unspliced = 1 - sum(self.u_r2, axis=0) / var(self.Mu, axis=0) \
             / (self.adata.shape[0] - 1)
         new_adata_col(self.adata, ['fit_sr2', 'fit_ur2'], [r2_spliced.numpy(), r2_unspliced.numpy()])
-
-        self.adata.uns['loss'] = self.vgene_loss
-        print (f'vgene loss {self.vgene_loss:.3f}')
 
     def save_pars(self, paras):
         columns = ['a', 'h', 'gamma', 'beta']

@@ -37,56 +37,6 @@ def remove_dir(data_path, adata):
         shutil.rmtree(NEW_DIR)
     os.mkdir(NEW_DIR)
 
-def save_vars(
-    adata, 
-    args, 
-    fits, 
-    fitu, 
-    scaling=1
-):
-    s = pd.DataFrame(data=fits, index=adata.obs.index, columns=adata.var.index)
-    u = pd.DataFrame(data=fitu, index=adata.obs.index, columns=adata.var.index)
-    ms = pd.DataFrame(data=adata.layers['Ms'], index=adata.obs.index, columns=adata.var.index)
-    mu = pd.DataFrame(data=adata.layers['Mu'], index=adata.obs.index, columns=adata.var.index)
-    s['label'] = adata.obs[adata.uns['label']].values
-
-    if adata.var.index[0].startswith('ENSMUSG'):
-        adata.var.index = adata.var['gene']
-        adata.var.index.name = 'index' 
-
-    var = pd.DataFrame(data=np.zeros((adata.shape[1], )), index=adata.var.index)
-    del var[0]
-
-    pars = []
-    for i in range(len(args)):
-        if args[i].shape[0] > 1:
-            for k in range(1):
-                # par = np.zeros(adata.n_vars) * np.nan
-                par = args[i][k, :].numpy()
-                pars.append(par)
-        else:
-            # par = np.zeros(adata.n_vars) * np.nan
-            par = args[i].numpy()
-            pars.append(par)
-    
-    for i, name in enumerate(adata.uns['par_names']):
-        var[name] = np.transpose(pars[i])
-    
-    columns = ['a', 'h', 'gamma', 'beta']
-    for col in columns:
-        var[col] = np.exp(var[col])
-    
-    var['beta'] /= scaling
-    var['intercept'] *= scaling
-    
-    NEW_DIR = adata.uns['temp']
-
-    s.to_csv(f'{NEW_DIR}/fits.csv')
-    u.to_csv(f'{NEW_DIR}/fitu.csv')
-    var.to_csv(f'{NEW_DIR}/fitvar.csv')
-    ms.to_csv(f'{NEW_DIR}/Ms.csv')
-    mu.to_csv(f'{NEW_DIR}/Mu.csv')
-
 def min_max(data):
     return (data - np.min(data)) / (np.max(data) - np.min(data))
 
@@ -257,7 +207,6 @@ def subset_prediction(adata_subset, adata, config=None):
     adata.var = adata_subset.var.copy()
     adata.uns['basis'] = adata_subset.uns['basis']
     adata.uns['label'] = adata_subset.uns['label']
-    adata.uns['par_names'] = adata_subset.uns['par_names']
 
     model.total_genes = adata.var['velocity_genes'].values
     model.idx = adata.var['velocity_genes'].values

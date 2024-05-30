@@ -4,7 +4,7 @@ from scvelo.tools.utils import make_unique_list
 from tqdm import tqdm
 import scvelo as scv
 from .optimize_utils import Model_Utils
-from .utils import save_vars, min_max
+from .utils import min_max
 from packaging import version
 import os
 
@@ -39,11 +39,11 @@ class Recover_Paras(Model_Utils):
 
         self.idx = idx
         self.scaling = adata.var['scaling'].values
+        self.default_pars_names = ['gamma', 'beta', 'offset', 'a', 't', 'h', 'intercept']
 
-        self.init_pars()
         self.init_vars()
         self.init_weights()
-        self.adata.uns['par_names'] = self.default_pars_names
+
         self.t_cell = self.compute_cell_time(args=None)
         self.pi = tf.constant(np.pi, dtype=tf.float32)
 
@@ -105,9 +105,9 @@ class Recover_Paras(Model_Utils):
 
         return t_cell
 
-    def compute_loss(self, args, t_cell, Ms, Mu, iter, progress_bar):
+    def compute_loss(self, args, t_cell, iter, progress_bar):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
-        udiff, sdiff = Mu - self.u_func, Ms - self.s_func
+        udiff, sdiff = self.Mu - self.u_func, self.Ms - self.s_func
 
         self.u_r2 = square(udiff)
         self.s_r2 = square(sdiff)
@@ -115,7 +115,7 @@ class Recover_Paras(Model_Utils):
         if (self.config.FIT_OPTION == '1') & \
             (iter > int(0.9 * self.config.MAX_ITER)) & self.config.REG_LOSS:
             self.s_r2 = self.s_r2 + \
-                std(Ms, axis=0) * self.config.REG_TIMES * \
+                std(self.Ms, axis=0) * self.config.REG_TIMES * \
                 exp(-square(args[4] - 0.5) / self.config.REG_SCALE)
 
         #! convert for self.varu to account for scaling in pre-processing
@@ -125,10 +125,10 @@ class Recover_Paras(Model_Utils):
             - square(mean(tf.math.sign(udiff) * sqrt(self.u_r2) * self.scaling, axis=0))
 
         self.u_log_likeli = \
-            - (Mu.shape[0] / 2) * log(2 * self.pi * self.varu) \
+            - (self.Mu.shape[0] / 2) * log(2 * self.pi * self.varu) \
             - sum(self.u_r2 * square(self.scaling), axis=0) / (2 * self.varu) 
         self.s_log_likeli = \
-            - (Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
+            - (self.Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
             - sum(self.s_r2, axis=0) / (2 * self.vars) 
 
         error_1 = np.sum(sum(self.u_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
@@ -160,7 +160,7 @@ class Recover_Paras(Model_Utils):
                     self.log_h, 
                     self.intercept
                 ]
-                obj = self.compute_loss(args, self.t_cell, self.Ms, self.Mu, iter, progress_bar)
+                obj = self.compute_loss(args, self.t_cell, iter, progress_bar)
 
             stop_cond = self.get_stop_cond(iter, pre, obj)
 
@@ -202,18 +202,9 @@ class Recover_Paras(Model_Utils):
         self.adata.var['fit_beta'] /= self.scaling
         self.adata.var['fit_intercept'] *= self.scaling
 
-        # Save observations, predictinos and variables locally
-        save_vars(self.adata, args, 
-                self.s_func.numpy(), self.u_func.numpy(), 
-                self.scaling)
+        self.adata.layers['Pred_s'] = self.s_func.numpy()
+        self.adata.layers['Pred_u'] = self.u_func.numpy()
 
-        #! Model loss, log likelihood and BIC based on unspliced counts
-        gene_loss = sum(self.u_r2, axis=0) / self.Ms.shape[0]
-
-        self.adata.var['fit_loss'] = gene_loss.numpy()
-        self.adata.var['fit_llf'] = self.u_log_likeli.numpy()
-
-        # Mimimum loss during optimization, might not be the actual minimum
         r2_spliced = 1 - sum(self.s_r2, axis=0) / var(self.Ms, axis=0) \
             / (self.adata.shape[0] - 1)
         r2_unspliced = 1 - sum(self.u_r2, axis=0) / var(self.Mu, axis=0) \

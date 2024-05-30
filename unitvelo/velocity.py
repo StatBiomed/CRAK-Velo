@@ -194,8 +194,7 @@ class Velocity:
         print (f'# of velocity genes {idx.sum()} (Criterion: genes have reads in more than 5% of total cells)')
 
         if self.config.RESCALE_DATA:
-            Ms_scale, Mu_scale = \
-                self.Ms, self.Mu / (np.std(self.Mu, axis=0) / np.std(self.Ms, axis=0))
+            Ms_scale, Mu_scale = self.Ms, self.Mu / self.scaling
         else:
             Ms_scale, Mu_scale = self.Ms, self.Mu
 

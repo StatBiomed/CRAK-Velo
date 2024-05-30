@@ -69,10 +69,6 @@ class Model_Utils():
                     tf.reshape(init_inter, (1, self.adata.n_vars)), 
                     name='intercept')
 
-    def init_pars(self):
-        self.default_pars_names = ['gamma', 'beta']
-        self.default_pars_names += ['offset', 'a', 't', 'h', 'intercept']
-
     def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
         weights = np.array(nonzero_s & nonzero_u, dtype=bool)
@@ -174,17 +170,8 @@ class Model_Utils():
 
     def init_time(self, boundary, shape=None):
         x = tf.linspace(boundary[0], boundary[1], shape[0])
-
-        try:
-            if type(boundary[0]) == int or boundary[0].shape[1] == 1:
-                x = tf.reshape(x, (-1, 1))
-                x = tf.broadcast_to(x, shape)
-            else:
-                x = tf.squeeze(x)
-        except:
-            x = tf.reshape(x, (-1, 1))
-            x = tf.broadcast_to(x, shape)
-
+        x = tf.reshape(x, (-1, 1))
+        x = tf.broadcast_to(x, shape)
         return tf.cast(x, dtype=tf.float32)
     
     def get_opt_args(self, iter, args):

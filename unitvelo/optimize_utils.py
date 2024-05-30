@@ -1,7 +1,6 @@
 #%%
 import tensorflow as tf
 import numpy as np
-import logging
 np.random.seed(42)
 
 exp = tf.math.exp
@@ -56,7 +55,7 @@ class Model_Utils():
             name='log_gamma')
 
         for id in np.where(init_gamma <= 0)[0]:
-            logging.info(f'name: {self.adata.var.index[id]}, gamma: {init_gamma[id]}')
+            print (f'name: {self.adata.var.index[id]}, gamma: {init_gamma[id]}')
 
         self.log_gamma = tf.Variable(
             tf.where(tf.math.is_finite(self.log_gamma), self.log_gamma, 0), 

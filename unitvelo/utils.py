@@ -1,10 +1,9 @@
 import numpy as np
-import pandas as pd
 import os
 np.random.seed(42)
-import logging
 import scvelo as scv
 import tensorflow as tf
+import scanpy as sc
 
 def get_cgene_list():
     s_genes_list = \
@@ -24,18 +23,6 @@ def get_cgene_list():
         'Cenpe', 'Ctcf', 'Nek2', 'G2e3', 'Gas2l3', 'Cbx5', 'Cenpa']
 
     return s_genes_list, g2m_genes_list
-
-def remove_dir(data_path, adata):
-    import shutil
-    dir = os.path.split(data_path)[0]
-    filename = os.path.splitext(os.path.basename(data_path))[0]
-
-    NEW_DIR = os.path.join(dir, filename)
-    adata.uns['temp'] = NEW_DIR
-    
-    if os.path.exists(NEW_DIR):
-        shutil.rmtree(NEW_DIR)
-    os.mkdir(NEW_DIR)
 
 def min_max(data):
     return (data - np.min(data)) / (np.max(data) - np.min(data))
@@ -338,14 +325,6 @@ def init_adata_and_logs(adata, config, normalize=True):
         print (f'Current working dir is {cwd}.')
         print (f'Results will be stored in res folder')
         data_path = os.path.join(cwd, 'res', 'temp.h5ad')
-    
-    from .utils import remove_dir
-    remove_dir(data_path, adata)
-    logging.basicConfig(filename=os.path.join(adata.uns['temp'], 'logging.txt'),
-                        filemode='a',
-                        format='%(asctime)s, %(levelname)s, %(message)s',
-                        datefmt='%H:%M:%S',
-                        level=logging.INFO)
 
     if normalize:
         scv.pp.filter_and_normalize(adata, 
@@ -354,7 +333,7 @@ def init_adata_and_logs(adata, config, normalize=True):
         print (f"Extracted {adata.var[adata.var['highly_variable'] == True].shape[0]} highly variable genes.")
 
         print (f'Computing moments for {len(adata.var)} genes with n_neighbors: {config.N_NEIGHBORS} and n_pcs: {config.N_PCS}')
-        import scanpy as sc
+        
         sc.pp.pca(adata)
         sc.pp.neighbors(adata, n_pcs=config.N_PCS, n_neighbors=config.N_NEIGHBORS)
         scv.pp.moments(adata, 

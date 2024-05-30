@@ -45,6 +45,6 @@ def run_model(
     scv.tl.velocity_embedding(adata, basis=adata.uns['basis'])
     scv.tl.latent_time(adata, min_likelihood=None)
 
-    adata.write(os.path.join(adata.uns['temp'], f'temp_{config.FIT_OPTION}.h5ad'))
+    adata.write(os.path.join(f'adata_fitted_{config.FIT_OPTION}.h5ad'))
 
     return adata

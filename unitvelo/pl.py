@@ -19,13 +19,10 @@ def plot_range(
     adata, 
     config_file=None, 
     save_fig=False, 
-    show_ax=False,
     show_legend=True,
-    show_details=False,
     time_metric='latent_time',
     palette='tab20',
-    size=20,
-    ncols=1
+    size=20
 ):
     """
     Plotting function of phase portraits of individual genes.
@@ -38,13 +35,7 @@ def plot_range(
         
         show_ax (bool)
         show_legend (bool)
-        show_details (bool): if True, plot detailed regression results together with estimated temporal change
         time_metric (str): inferred cell time, default 'latent_time'
-
-        show_temporal (bool, experimental): whether plot temporal changes
-            show_positive (bool, experimental): related to self.ASSIGN_POS_U
-            t_left (float, experimental): starting time of phase portraits
-            t_right (float, experimental): ending time of phase portraits
     """
 
     if config_file == None:
@@ -54,81 +45,72 @@ def plot_range(
         if 'latent_time' not in adata.obs.columns:
             scv.tl.latent_time(adata, min_likelihood=None)
 
-    if show_details:
-        from .individual_gene import exam_genes        
-        exam_genes(adata, gene_name, time_metric=time_metric)
+    gene_name = gene_name if type(gene_name) == list else [gene_name]
 
-    else:
-        gene_name = gene_name if type(gene_name) == list else [gene_name]
-        figs = []    
+    for gn in gene_name:
+        fig, axes = plt.subplots(
+                nrows=1,
+                ncols=3, 
+                figsize=(18, 4)
+        )
+        gdata = adata[:, gn]
 
-        for gn in gene_name:
-            fig, axes = plt.subplots(
-                    nrows=1,
-                    ncols=3, 
-                    figsize=(18, 4)
-            )
-            gdata = adata[:, gn]
+        boundary = (gdata.var.fit_t.values - 3 * (1 / np.sqrt(2 * np.exp(gdata.var.fit_a.values))), 
+                    gdata.var.fit_t.values + 3 * (1 / np.sqrt(2 * np.exp(gdata.var.fit_a.values))))
+        
+        t_one = np.linspace(0, 1, 1000)
+        t_boundary = np.linspace(boundary[0], boundary[1], 2000)
 
-            boundary = (gdata.var.fit_t.values - 3 * (1 / np.sqrt(2 * np.exp(gdata.var.fit_a.values))), 
-                        gdata.var.fit_t.values + 3 * (1 / np.sqrt(2 * np.exp(gdata.var.fit_a.values))))
-            
-            t_one = np.linspace(0, 1, 1000)
-            t_boundary = np.linspace(boundary[0], boundary[1], 2000)
+        spre = np.squeeze(rbf(t_boundary, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values))
+        sone = np.squeeze(rbf(t_one, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values))
 
-            spre = np.squeeze(rbf(t_boundary, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values))
-            sone = np.squeeze(rbf(t_one, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values))
+        upre = np.squeeze(rbf_u(t_boundary, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values, gdata.var.fit_beta.values, gdata.var.fit_gamma.values, gdata.var.fit_intercept.values))
+        uone = np.squeeze(rbf_u(t_one, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values, gdata.var.fit_beta.values, gdata.var.fit_gamma.values, gdata.var.fit_intercept.values))
 
-            upre = np.squeeze(rbf_u(t_boundary, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values, gdata.var.fit_beta.values, gdata.var.fit_gamma.values, gdata.var.fit_intercept.values))
-            uone = np.squeeze(rbf_u(t_one, gdata.var.fit_h.values, gdata.var.fit_a.values, gdata.var.fit_t.values, gdata.var.fit_offset.values, gdata.var.fit_beta.values, gdata.var.fit_gamma.values, gdata.var.fit_intercept.values))
+        g1 = sns.scatterplot(x=np.squeeze(gdata.layers['Ms']), 
+                            y=np.squeeze(gdata.layers['Mu']), 
+                            s=size, hue=adata.obs[adata.uns['label']], 
+                            palette=palette, ax=axes[0])
+        axes[0].plot(spre, upre, color='lightgrey', linewidth=2, label='Predicted Curve')
+        axes[0].plot(sone, uone, color='black', linewidth=2, label='Predicted Curve Time 0-1')
+        axes[0].set_xlabel('Spliced Reads')
+        axes[0].set_ylabel('Unspliced Reads')
 
-            g1 = sns.scatterplot(x=np.squeeze(gdata.layers['Ms']), 
-                                y=np.squeeze(gdata.layers['Mu']), 
-                                s=size, hue=adata.obs[adata.uns['label']], 
-                                palette=palette, ax=axes[0])
-            axes[0].plot(spre, upre, color='lightgrey', linewidth=2, label='Predicted Curve')
-            axes[0].plot(sone, uone, color='black', linewidth=2, label='Predicted Curve Time 0-1')
-            axes[0].set_xlabel('Spliced Reads')
-            axes[0].set_ylabel('Unspliced Reads')
+        axes[0].set_xlim([-0.005 if gdata.layers['Ms'].min() < 1
+                else gdata.layers['Ms'].min() * 0.95, 
+                gdata.layers['Ms'].max() * 1.05])
+        axes[0].set_ylim([-0.005 if gdata.layers['Mu'].min() < 1
+                else gdata.layers['Mu'].min() * 0.95, 
+                gdata.layers['Mu'].max() * 1.05])
 
-            axes[0].set_xlim([-0.005 if gdata.layers['Ms'].min() < 1
-                    else gdata.layers['Ms'].min() * 0.95, 
-                    gdata.layers['Ms'].max() * 1.05])
-            axes[0].set_ylim([-0.005 if gdata.layers['Mu'].min() < 1
-                    else gdata.layers['Mu'].min() * 0.95, 
-                    gdata.layers['Mu'].max() * 1.05])
+        g2 = sns.scatterplot(x=np.squeeze(adata.obs[time_metric].values), 
+                            y=np.squeeze(gdata.layers['Ms']), 
+                            s=size, hue=adata.obs[adata.uns['label']], 
+                            palette=palette, ax=axes[1])
+        sns.lineplot(x=t_one, y=sone, color='black', linewidth=2, ax=axes[1])
 
-            g2 = sns.scatterplot(x=np.squeeze(adata.obs[time_metric].values), 
-                                y=np.squeeze(gdata.layers['Ms']), 
-                                s=size, hue=adata.obs[adata.uns['label']], 
-                                palette=palette, ax=axes[1])
-            sns.lineplot(x=t_one, y=sone, color='black', linewidth=2, ax=axes[1])
+        axes[1].set_xlabel('Inferred Cell Time')
+        axes[1].set_ylabel('Spliced')
 
-            axes[1].set_xlabel('Inferred Cell Time')
-            axes[1].set_ylabel('Spliced')
+        g3 = sns.scatterplot(x=np.squeeze(adata.obs[time_metric].values), 
+                            y=np.squeeze(gdata.layers['Mu']), 
+                            s=size, hue=adata.obs[adata.uns['label']], 
+                            palette=palette, ax=axes[2])
+        sns.lineplot(x=t_one, y=uone, color='black', linewidth=2, ax=axes[2])
 
-            g3 = sns.scatterplot(x=np.squeeze(adata.obs[time_metric].values), 
-                                y=np.squeeze(gdata.layers['Mu']), 
-                                s=size, hue=adata.obs[adata.uns['label']], 
-                                palette=palette, ax=axes[2])
-            sns.lineplot(x=t_one, y=uone, color='black', linewidth=2, ax=axes[2])
+        axes[2].set_xlabel('Inferred Cell Time')
+        axes[2].set_ylabel('Unspliced')
 
-            axes[2].set_xlabel('Inferred Cell Time')
-            axes[2].set_ylabel('Unspliced')
+        if not show_legend:
+            g1.get_legend().remove()
+            g2.get_legend().remove()
+            g3.get_legend().remove()
 
-            # if not show_ax:
-            #     axes.axis("off")
+        axes[1].set_title(gn, fontsize=12)
+        plt.show()
 
-            if not show_legend:
-                g1.get_legend().remove()
-                g2.get_legend().remove()
-                g3.get_legend().remove()
-
-            axes[1].set_title(gn, fontsize=12)
-            plt.show()
-
-            if save_fig:
-                plt.savefig(os.path.join(adata.uns['temp'], f'GM_{gn}.png'), dpi=300, bbox_inches='tight')
+        if save_fig:
+            plt.savefig(os.path.join(f'GM_{gn}.png'), dpi=300, bbox_inches='tight')
 
 def plot_loss(iter, loss, thres=None):
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))

@@ -1,4 +1,3 @@
-#%%
 """
 Evaluation utility functions.
 This module contains util functions for computing evaluation scores.

@@ -1,4 +1,3 @@
-#%%
 import os
 from time import gmtime, strftime
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -21,7 +20,7 @@ print (strftime("%Y-%m-%d %H:%M:%S", gmtime()))
 
 from .main import run_model
 from .config import Configuration
-from .eval_utils import evaluate
-from .gene_influence import influence
+from .supplement.eval_utils import evaluate
+from .supplement.gene_influence import influence
 from .utils import choose_mode, subset_adata
-from .pl import plot_range
+from .pl.pl import plot_range

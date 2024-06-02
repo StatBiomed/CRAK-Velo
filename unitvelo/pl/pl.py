@@ -1,4 +1,3 @@
-#%%
 import matplotlib.pyplot as plt
 import scvelo as scv
 import seaborn as sns

@@ -1,7 +1,5 @@
-#%%
 import tensorflow as tf
 import numpy as np
-np.random.seed(42)
 
 exp = tf.math.exp
 pow = tf.math.pow
@@ -21,52 +19,52 @@ def col_minmax(matrix, gene_id=None):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
 
-#%%
 class Model_Utils():
     def __init__(
         self, 
         adata=None,
-        var_names=None,
         Ms=None,
         Mu=None,
-        config=None
+        config=None,
+        logger=None
     ):
         self.adata = adata
-        self.var_names = var_names
         self.Ms, self.Mu = Ms, Mu
         self.config = config
+        self.logger = logger
 
     def init_vars(self):
         ngenes = self.Ms.shape[1]
-        ones = tf.ones((1, ngenes), dtype=tf.float32)
 
-        self.log_beta = tf.Variable(ones * 0, name='log_beta')
-        self.intercept = tf.Variable(ones * 0, name='intercept')
+        self.log_beta = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='log_beta')
+        self.intercept = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='intercept')
 
-        self.t = tf.Variable(ones * 0.5, name='t') #! mean of Gaussian
-        self.log_a = tf.Variable(ones * 0, name='log_a') #! 1 / scaling of Gaussian
-        self.offset = tf.Variable(ones * 0, name='offset')
+        self.t = tf.Variable(tf.ones((1, ngenes), dtype=tf.float32) * 0.5, name='t') #! mean of Gaussian
+        self.log_a = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='log_a') #! 1 / scaling of Gaussian
+        self.offset = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='offset')
 
-        self.log_h = tf.Variable(ones * log(tf.math.reduce_max(self.Ms, axis=0)), name='log_h')
+        self.log_h = tf.Variable(log(tf.math.reduce_max(self.Ms, axis=0, keepdims=True)), name='log_h')
 
         init_gamma = self.adata.var['velocity_gamma'].values
         self.log_gamma = tf.Variable(
             log(tf.reshape(init_gamma, (1, self.adata.n_vars))), 
-            name='log_gamma')
+            name='log_gamma'
+        )
 
-        for id in np.where(init_gamma <= 0)[0]:
-            print (f'name: {self.adata.var.index[id]}, gamma: {init_gamma[id]}')
+        # for id in np.where(init_gamma <= 0)[0]:
+        #     self.logger.info(f'name: {self.adata.var.index[id]}, gamma: {init_gamma[id]}')
 
         self.log_gamma = tf.Variable(
             tf.where(tf.math.is_finite(self.log_gamma), self.log_gamma, 0), 
-            name='log_gamma')
+            name='log_gamma'
+        )
 
-        if self.config.VGENES == 'offset':
+        if self.config['velocity_genes']['vgenes'] == 'offset':
             init_inter = self.adata.var['velocity_inter'].values
-            self.intercept = \
-                tf.Variable(
-                    tf.reshape(init_inter, (1, self.adata.n_vars)), 
-                    name='intercept')
+            self.intercept = tf.Variable(
+                tf.reshape(init_inter, (1, self.adata.n_vars)), 
+                name='intercept'
+            )
 
     def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
@@ -76,34 +74,30 @@ class Model_Utils():
         self.nobs = np.sum(weights, axis=0)
 
     def get_fit_s(self, args, t_cell):
-        self.fit_s = exp(args[5]) * \
-            exp(-exp(args[3]) * square(t_cell - args[4])) + \
-            args[2]
-
+        self.fit_s = exp(args[5]) * exp(-exp(args[3]) * square(t_cell - args[4])) + args[2]
         return self.fit_s
     
     def get_s_deri(self, args, t_cell):
-        self.s_deri = (self.fit_s - args[2]) * \
-            (-exp(args[3]) * 2 * (t_cell - args[4]))
-
+        self.s_deri = (self.fit_s - args[2]) * (-exp(args[3]) * 2 * (t_cell - args[4]))
         return self.s_deri
 
     def get_fit_u(self, args):
-        return (self.s_deri + exp(args[0]) * self.fit_s) / exp(args[1]) + args[6]
+        self.fit_u = (self.s_deri + exp(args[0]) * self.fit_s) / exp(args[1]) + args[6]
+        return self.fit_u
     
     def get_s_u(self, args, t_cell):
         s = self.get_fit_s(args, t_cell)
         s_deri = self.get_s_deri(args, t_cell)
         u = self.get_fit_u(args)
 
-        if self.config.ASSIGN_POS_U:
+        if self.config['fitting_option']['assign_pos_u']:
             s = tf.clip_by_value(s, 0, 1000)
             u = tf.clip_by_value(u, 0, 1000)
 
         return s, u
 
     def max_density(self, dis):
-        if self.config.DENSITY == 'SVD':
+        if self.config['fitting_option']['density'] == 'SVD':
             s, u, v = tf.linalg.svd(dis)
             s = s[0:50]
             u = u[:, :tf.size(s)]
@@ -111,7 +105,7 @@ class Model_Utils():
             dis_approx = tf.matmul(u, tf.matmul(tf.linalg.diag(s), v, adjoint_b=True))
             return tf.cast(mean(dis_approx, axis=1), tf.float32)
 
-        if self.config.DENSITY == 'Raw':
+        if self.config['fitting_option']['density'] == 'Raw':
             return tf.cast(mean(dis, axis=1), tf.float32)
 
     def match_time(self, Ms, Mu, s_predict, u_predict, x):
@@ -132,17 +126,17 @@ class Model_Utils():
                 euclidean = sqrt(u_r2 + s_r2)
                 assign_loc = tf.math.argmin(euclidean, axis=1).numpy() # n * 1
                 
-                if self.config.REORDER_CELL == 'Soft_Reorder':
+                if self.config['fitting_option']['reorder_cell'] == 'Soft_Reorder':
                     cell_time[:, index:index + 1] = \
                         col_minmax(self.reorder(assign_loc), self.adata.var.index[index])
-                if self.config.REORDER_CELL == 'Soft':
+                if self.config['fitting_option']['reorder_cell'] == 'Soft':
                     cell_time[:, index:index + 1] = \
                         col_minmax(assign_loc, self.adata.var.index[index])
-                if self.config.REORDER_CELL == 'Hard':
+                if self.config['fitting_option']['reorder_cell'] == 'Hard':
                     cell_time[:, index:index + 1] = \
                         x[0, index:index + 1] + val[index:index + 1] * assign_loc
 
-        if self.config.AGGREGATE_T:
+        if self.config['fitting_option']['aggregrate_t']:
             return self.max_density(cell_time[:, self.index_list]) #! sampling?
         else:
             return cell_time
@@ -176,34 +170,21 @@ class Model_Utils():
     def get_opt_args(self, iter, args):
         remain = iter % 400
         
-        if self.config.FIT_OPTION == '1':
-            if iter < self.config.MAX_ITER / 2:
-                args_to_optimize = [args[2], args[3], args[4], args[5]] \
-                    if remain < 200 else [args[0], args[1], args[6]]
+        if self.config['fitting_option']['mode'] == 1:
+            if iter < self.config['base_trainer']['epochs'] / 2:
+                args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6]]
 
             else:
-                args_to_optimize = [args[0], args[1], 
-                                    args[2], args[3],
-                                    args[4], args[5], args[6]]
+                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6]]
         
-        if self.config.FIT_OPTION == '2':
-            if iter < self.config.MAX_ITER / 2:
-                args_to_optimize = [args[3], args[5]] \
-                    if remain < 200 else [args[0], args[1]]
+        if self.config['fitting_option']['mode'] == 2:
+            if iter < self.config['base_trainer']['epochs'] / 2:
+                args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]
                     
             else:
                 args_to_optimize = [args[0], args[1], args[3], args[5]]
         
         return args_to_optimize
-
-    def get_loss(self, iter, s_r2, u_r2):
-        if iter < self.config.MAX_ITER / 2:
-            remain = iter % 400
-            loss = s_r2 if remain < 200 else u_r2
-        else:
-            loss = s_r2 + u_r2 
-
-        return tf.where(tf.math.is_finite(loss), loss, 0)
     
     def get_stop_cond(self, iter, pre, obj):
         stop_s = tf.zeros(self.Ms.shape[1], tf.bool)
@@ -218,7 +199,7 @@ class Model_Utils():
         return tf.math.logical_and(stop_s, stop_u)
 
     def get_interim_t(self, t_cell, idx):
-        if self.config.AGGREGATE_T:
+        if self.config['fitting_option']['aggregrate_t']:
             return t_cell
         
         else:

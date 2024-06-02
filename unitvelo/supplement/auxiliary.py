@@ -1,65 +1,3 @@
-import numpy as np
-import os
-np.random.seed(42)
-import scvelo as scv
-import tensorflow as tf
-import scanpy as sc
-
-def get_cgene_list():
-    s_genes_list = \
-        ['Mcm5', 'Pcna', 'Tyms', 'Fen1', 'Mcm2', 'Mcm4', 'Rrm1', 'Ung', 'Gins2',
-        'Mcm6', 'Cdca7', 'Dtl', 'Prim1', 'Uhrf1', 'Mlf1ip', 'Hells', 'Rfc2',
-        'Rpa2', 'Nasp', 'Rad51ap1', 'Gmnn', 'Wdr76', 'Slbp', 'Ccne2', 'Ubr7',
-        'Pold3', 'Msh2', 'Atad2', 'Rad51', 'Rrm2', 'Cdc45', 'Cdc6', 'Exo1', 'Tipin',
-        'Dscc1', 'Blm', 'Casp8ap2', 'Usp1', 'Clspn', 'Pola1', 'Chaf1b', 'Brip1', 'E2f8']
-
-    g2m_genes_list = \
-        ['Hmgb2', 'Cdk1', 'Nusap1', 'Ube2c', 'Birc5', 'Tpx2', 'Top2a', 'Ndc80',
-        'Cks2', 'Nuf2', 'Cks1b', 'Mki67', 'Tmpo', 'Cenpf', 'Tacc3', 'Fam64a',
-        'Smc4', 'Ccnb2', 'Ckap2l', 'Ckap2', 'Aurkb', 'Bub1', 'Kif11', 'Anp32e',
-        'Tubb4b', 'Gtse1', 'Kif20b', 'Hjurp', 'Cdca3', 'Hn1', 'Cdc20', 'Ttk',
-        'Cdc25c', 'Kif2c', 'Rangap1', 'Ncapd2', 'Dlgap5', 'Cdca2', 'Cdca8',
-        'Ect2', 'Kif23', 'Hmmr', 'Aurka', 'Psrc1', 'Anln', 'Lbr', 'Ckap5',
-        'Cenpe', 'Ctcf', 'Nek2', 'G2e3', 'Gas2l3', 'Cbx5', 'Cenpa']
-
-    return s_genes_list, g2m_genes_list
-
-def min_max(data):
-    return (data - np.min(data)) / (np.max(data) - np.min(data))
-
-def make_dense(X):
-    from scipy.sparse import issparse
-
-    XA = X.A if issparse(X) and X.ndim == 2 else X.A1 if issparse(X) else X
-    if XA.ndim == 2:
-        XA = XA[0] if XA.shape[0] == 1 else XA[:, 0] if XA.shape[1] == 1 else XA
-    return np.array(XA)
-
-def get_weight(x, y=None, perc=95):
-    from scipy.sparse import issparse
-
-    xy_norm = np.array(x.A if issparse(x) else x)
-    if y is not None:
-        if issparse(y):
-            y = y.A
-        xy_norm = xy_norm / np.clip(np.max(xy_norm, axis=0), 1e-3, None)
-        xy_norm += y / np.clip(np.max(y, axis=0), 1e-3, None)
-
-    if isinstance(perc, int):
-        weights = xy_norm >= np.percentile(xy_norm, perc, axis=0)
-    else:
-        lb, ub = np.percentile(xy_norm, perc, axis=0)
-        weights = (xy_norm <= lb) | (xy_norm >= ub)
-
-    return weights
-
-def R2(residual, total):
-    r2 = np.ones(residual.shape[1]) - \
-        np.sum(residual * residual, axis=0) / \
-            np.sum(total * total, axis=0)
-    r2[np.isnan(r2)] = 0
-    return r2
-
 def reverse_transient(adata, time_metric='latent_time'):
     from scipy.optimize import curve_fit
     import numpy as np
@@ -108,7 +46,7 @@ def reverse_transient(adata, time_metric='latent_time'):
             if r2 - r2_rbf > 0.075:
                 adata.var.loc[index, 're_transit'] = True
     
-    from .pl import plot_reverse_tran_scatter
+    from ..pl.pl import plot_reverse_tran_scatter
     plot_reverse_tran_scatter(adata)
 
     re_tran_num = adata.var.loc[adata.var['re_transit'] == True].shape[0]
@@ -123,7 +61,7 @@ def choose_mode(adata, label=None):
     print ('For less certain scenario, we also suggest users to try both.')
     print ('---> Checking cell cycle scores...')
 
-    from .utils import get_cgene_list
+    from ..utils import get_cgene_list
     import scvelo as scv
     scv.pp.filter_and_normalize(adata, min_shared_counts=20, n_top_genes=2000)
 
@@ -186,7 +124,7 @@ def subset_adata(adata, label=None, proportion=0.5, min_cells=50):
     return adata[np.array(subset), :]
 
 def subset_prediction(adata_subset, adata, config=None):
-    from .optimize_utils import Model_Utils
+    from ..model.optimize_utils import Model_Utils
 
     model = Model_Utils(adata, config=config)
     x = model.init_time((0, 1), (3000, adata.n_vars))
@@ -262,84 +200,3 @@ def subset_prediction(adata_subset, adata, config=None):
     adata.write(os.path.join(NEW_DIR, f'predict_adata.h5ad'))
 
     return adata
-
-def init_config_summary(config=None):
-    from .config import Configuration
-    if config == None:
-        print (f'Model configuration file not specified. Default settings with unified-time mode will be used.')
-        config = Configuration()
-
-    if config.FIT_OPTION == '1':
-        config.DENSITY = 'SVD' 
-        config.REORDER_CELL = 'Soft_Reorder'
-        config.AGGREGATE_T = True
-
-    elif config.FIT_OPTION == '2':
-        config.DENSITY = 'Raw'
-        config.REORDER_CELL = 'Hard'
-        config.AGGREGATE_T = False
-
-    else:
-        raise ValueError('config.FIT_OPTION is invalid')
-
-    print ('------> Manully Specified Parameters <------')
-    config_ref = Configuration()
-    dict_input, dict_ref = vars(config), vars(config_ref)
-
-    para_used = []
-    for parameter in dict_ref:
-        if dict_input[parameter] != dict_ref[parameter]:
-            print (parameter, dict_input[parameter], sep=f':\t')
-            para_used.append(parameter)
-
-    print ('------> Model Configuration Settings <------')
-    default_para = ['N_TOP_GENES', 
-                    'LEARNING_RATE', 
-                    'FIT_OPTION', 
-                    'DENSITY', 
-                    'REORDER_CELL', 
-                    'AGGREGATE_T', 
-                    'R2_ADJUST', 
-                    'VGENES', 
-                    'IROOT']
-
-    for parameter in default_para:
-        if parameter not in para_used:
-            print (parameter, dict_ref[parameter], sep=f':\t')
-    
-    print ('--------------------------------------------')
-    print ('')
-    return config, para_used
-
-def init_adata_and_logs(adata, config, normalize=True):
-    if type(adata) == str:
-        data_path = adata
-        adata = scv.read(data_path)
-
-    else:
-        cwd = os.getcwd()
-        if os.path.exists(os.path.join(cwd, 'res')):
-            pass
-        else: os.mkdir(os.path.join(cwd, 'res'))
-
-        print (f'Current working dir is {cwd}.')
-        print (f'Results will be stored in res folder')
-        data_path = os.path.join(cwd, 'res', 'temp.h5ad')
-
-    if normalize:
-        scv.pp.filter_and_normalize(adata, 
-                                    min_shared_counts=config.MIN_SHARED_COUNTS, 
-                                    n_top_genes=config.N_TOP_GENES)
-        print (f"Extracted {adata.var[adata.var['highly_variable'] == True].shape[0]} highly variable genes.")
-
-        print (f'Computing moments for {len(adata.var)} genes with n_neighbors: {config.N_NEIGHBORS} and n_pcs: {config.N_PCS}')
-        
-        sc.pp.pca(adata)
-        sc.pp.neighbors(adata, n_pcs=config.N_PCS, n_neighbors=config.N_NEIGHBORS)
-        scv.pp.moments(adata, 
-                        n_pcs=None, 
-                        n_neighbors=None)
-    else:
-        scv.pp.neighbors(adata)
-
-    return adata, data_path

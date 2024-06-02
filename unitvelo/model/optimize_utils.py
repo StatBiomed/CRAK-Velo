@@ -142,23 +142,13 @@ class Model_Utils():
             return cell_time
 
     def reorder(self, loc):
-        new_loc = np.zeros(loc.shape)
+        new_loc = np.zeros_like(loc)
 
         for gid in range(loc.shape[1]):
-            ref = sorted([(val, idx) for idx, val in enumerate(loc[:, gid])], 
-                            key=lambda x:x[0])
+            sorted_vals = np.sort(loc[:, gid])
+            ranks = np.searchsorted(sorted_vals, loc[:, gid])
+            new_loc[:, gid] = ranks
 
-            pre, count, rep = ref[0][0], 0, 0
-            for item in ref:
-                if item[0] > pre:
-                    count += rep
-                    rep = 1
-                else:
-                    rep += 1
-
-                new_loc[item[1], gid] = count
-                pre = item[0]
-        
         return new_loc
 
     def init_time(self, boundary, shape=None):

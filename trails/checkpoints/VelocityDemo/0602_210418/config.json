@@ -1,0 +1,44 @@
+{
+    "name": "VelocityDemo",
+    "logger_config_path": "/home/mingzegao/ssd/UniTVelo-ATAC/unitvelo/config/config_logger.json",
+    "adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow.h5ad",
+    "cluster_name": "clusters",
+    "system": {
+        "gpu_id": 1,
+        "seed": 42
+    },
+    "preprocessing": {
+        "basis": "tsne",
+        "min_shared_counts": 20,
+        "n_top_genes": 2000,
+        "n_pcs": 30,
+        "n_neighbors": 30,
+        "use_raw": false,
+        "rescale_data": true
+    },
+    "base_trainer": {
+        "epochs": 12000,
+        "save_dir": "/home/mingzegao/ssd/UniTVelo-ATAC/trails",
+        "verbosity": 2,
+        "learning_rate": 0.01
+    },
+    "regularization": {
+        "reg_loss": true,
+        "reg_times": 0.075,
+        "reg_scale": 1
+    },
+    "fitting_option": {
+        "mode": 1,
+        "density": "SVD",
+        "reorder_cell": "Soft_Reorder",
+        "aggregrate_t": true,
+        "assign_pos_u": false
+    },
+    "velocity_genes": {
+        "r2_adjust": true,
+        "vgenes": "offset"
+    },
+    "cell_initialization": {
+        "iroot": "HSC_1"
+    }
+}

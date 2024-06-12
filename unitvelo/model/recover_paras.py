@@ -38,7 +38,7 @@ class Recover_Paras(Model_Utils):
 
         self.idx = idx
         self.scaling = adata.var['scaling'].values
-        self.default_pars_names = ['gamma', 'beta', 'offset', 'a', 't', 'h', 'intercept']
+        self.default_pars_names = ['gamma', 'beta', 'offset', 'a', 't', 'h', 'intercept']#,'region_weights', 'etta']
 
         self.init_vars()
         self.init_weights()
@@ -123,10 +123,14 @@ class Recover_Paras(Model_Utils):
     def get_squared_errors(self, args, t_cell, iter):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
         self.udiff, self.sdiff = self.Mu - self.u_func, self.Ms - self.s_func
+        #self.u_deri_func = get_u_deri(args, t_cell)
+        #self.u_deri_atac = self.compute_u_deri_atac(args)
+        #self.u_deri_diff = self.u_deri_func - self.u_deri_atac
 
         self.u_r2 = square(self.udiff)
         self.s_r2 = square(self.sdiff)
-
+        #self.u_deri2 = square(self.u_deri_diff)
+        
         if (self.config['fitting_option']['mode'] == 1) & \
             (iter > int(0.9 * self.config['base_trainer']['epochs'])) & \
             self.config['regularization']['reg_loss']:
@@ -206,6 +210,7 @@ class Recover_Paras(Model_Utils):
         pre = tf.repeat(1e6, self.Ms.shape[1]) # (2000, )
         progress_bar = tqdm(range(self.config['base_trainer']['epochs']))
 
+
         for iter in progress_bar:
             with tf.GradientTape() as tape:                
                 args = [
@@ -215,7 +220,9 @@ class Recover_Paras(Model_Utils):
                     self.log_a, 
                     self.t, 
                     self.log_h, 
-                    self.intercept
+                    self.intercept,
+                    #self.log_region_weights,
+                    #self.log_etta
                 ]
                 obj = self.compute_loss(args, self.t_cell, iter, progress_bar)
 

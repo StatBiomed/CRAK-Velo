@@ -3,6 +3,8 @@
     "logger_config_path": "/home/mingzegao/ssd/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
     "adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow.h5ad",
+    "atac_adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow_atac.h5ad",
+    "regions_genes_intersections": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow.bed",
     "cluster_name": "clusters",
 
     "system": {

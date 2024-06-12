@@ -5,7 +5,7 @@ from utils.utility import read_json
 
 def setup_logging(
     save_dir, 
-    log_config='logger/logger_config.json', 
+    log_config='logger/logger_config.json', ##change the path here
     default_level=logging.INFO
 ):
     log_config = Path(log_config)

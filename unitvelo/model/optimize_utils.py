@@ -1,5 +1,8 @@
 import tensorflow as tf
 import numpy as np
+# import torch
+# import gpytorch
+# from skorch.probabilistic import ExactGPRegressor
 
 exp = tf.math.exp
 pow = tf.math.pow
@@ -19,23 +22,49 @@ def col_minmax(matrix, gene_id=None):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
 
+# class RbfModule(gpytorch.models.ExactGP):
+#     def __init__(self, likelihood, noise_init=None):
+#         
+#         super().__init__(train_inputs=None, train_targets=None, likelihood=likelihood)
+#         self.mean_module = gpytorch.means.ConstantMean()
+#         self.covar_module = gpytorch.kernels.RBFKernel()
+
+#     def forward(self, x):
+#         mean_x = self.mean_module(x)
+#         covar_x = self.covar_module(x)
+#         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+
+# def GPR(device, max_epochs = 1, lr = 0.00001 ):
+          # gpr = ExactGPRegressor(
+            # RbfModule,
+            # optimizer=torch.optim.Adam,
+            # lr = lr,
+            # max_epochs = max_epochs,
+            # device = device,
+            # batch_size = -1,
+            # )
+        # return gpr
+    
+
 class Model_Utils():
     def __init__(
         self, 
         adata=None,
         Ms=None,
         Mu=None,
+        #M_acc=None,
         config=None,
         logger=None
     ):
         self.adata = adata
         self.Ms, self.Mu = Ms, Mu
+        #self.M_acc = M_acc
         self.config = config
         self.logger = logger
 
     def init_vars(self):
         ngenes = self.Ms.shape[1]
-
+        #nregions = self.M_acc.shape[1]
         self.log_beta = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='log_beta')
         self.intercept = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='intercept')
 
@@ -65,7 +94,43 @@ class Model_Utils():
                 tf.reshape(init_inter, (1, self.adata.n_vars)), 
                 name='intercept'
             )
+        
+       
 
+        #self.region_weights = tf.Variable(tf.ones((nregions,ngenes) * 0.01, dtype=tf.float32), name='log_weights')
+        #self.etta = tf.Variable(tf.ones((1, ngenes), dtype=tf.float32) * 0.5, name='log_etta')
+    
+    #def gene_regions_binary_matrix(self):
+
+        #nregions = self.Matac.shape[1]
+        #ngenes = self.Ms.shape[1]
+        # rows = self.df_rg_intersection["gene_coordinate"]
+        # columns = self.df_rg_intersection["region_coordinate"]
+        # B = np.zeros((ngenes, nregions), dtype=int)
+        # B[rows, columns] = 1
+        # return B
+        
+    #def velo_gene_regions_binary_matrix(self, B):
+         #self.B_velo_genes = B[self.velocity_genes,:]
+         #non_zero_regions = B_velo_genes.sum(axis=0)!=0
+         #self.adata_atac.var["velo_gene_region"] = non_zero_regions
+         #B_velo_genes = B_velo_genes[:,non_zero_regions]
+         
+         #return B_velo_genes, nonzero_regions    
+
+    #def cell_velo_regions_matrix(self, nonzero_regions):
+         #M_velo_acc = self.M_acc[:,nonzero_regions]
+         # return M_velo_acc
+
+    #def velo_regions_matrices(self):
+         #self.B = self.gene_regions_binary_matrix()
+         #self.B_tensor = tf.convert_to_tensor(self.B)
+         #self.M_velo_acc = self.M_acc
+         ####self.B, nonzero_regions = self.velo_gene_regions_binary_matrix(B)
+         ####self.M_velo_acc = self.cell_velo_regions_matrix(nonzero_regions)
+    
+         
+         
     def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
         weights = np.array(nonzero_s & nonzero_u, dtype=bool)
@@ -85,11 +150,15 @@ class Model_Utils():
         self.fit_u = (self.s_deri + exp(args[0]) * self.fit_s) / exp(args[1]) + args[6]
         return self.fit_u
     
+    # def get_u_deri(self, args, t_cell):
+    #     self.u_deri = (( - args[3] * 2 * (t_cell - args[4]) + exp(args[0])) * self.s_deri - args[3] * 2 *self.fit_s) / square(exp(args[1]))
+    #     return self.u_deri
+    
     def get_s_u(self, args, t_cell):
         s = self.get_fit_s(args, t_cell)
         s_deri = self.get_s_deri(args, t_cell)
         u = self.get_fit_u(args)
-
+        
         if self.config['fitting_option']['assign_pos_u']:
             s = tf.clip_by_value(s, 0, 1000)
             u = tf.clip_by_value(u, 0, 1000)
@@ -157,6 +226,43 @@ class Model_Utils():
         x = tf.broadcast_to(x, shape)
         return tf.cast(x, dtype=tf.float32)
     
+    #def region_dynamics_matrix(self):
+         # time_order = np.argsort(self.t_cell)
+         # M_acc_ordered = self.M_velo_acc[time_order, :]
+         # return M_acc_oredered
+    
+
+    #def smooth_acc_dynamics(self):
+         #M_acc_oredered = self.region_dynamics_matrix()
+         #M_acc_oredered_smoothed = np..empty_like(M_acc_oredered.numpy()) 
+         #n_regions = M_acc_oredered.shape[1]
+         #M_acc_oredered = torch.tensor(M_acc_oredered)
+         
+         #torch.manual_seed(0)
+         #torch.cuda.manual_seed(0)
+         #device = 'cuda' if torch.cuda.is_available() else 'cpu' 
+         #gpr = GPR(device, max_epochs = 1, lr = 0.00001 )
+         #time = self.t_cell
+
+         #for i in np.arange(0,n_regions):
+           #gpr.fit(time, M_acc_oredered[:,i])
+           #M_acc_oredered_smoothed[:,i] = gpr.predict(time)
+        
+        #return M_acc_oredered_smoothed
+    
+    #def compute_alpha(self, args):
+         #M_acc_oredered_smoothed = self.smooth_acc_dynamics()
+         #exp(args[7]) = np.multiply(self.B_tensor, exp(args[7]))
+         #exp(args[7]) = tf.cast(exp(args[7]), tf.float32)
+         #wr = np.matmul(M_acc_oredered_smoothed, tf.transpose(exp(args[7]))) 
+         #alpha = wr * exp(args[8])
+         #return alpha
+         
+    #def compute_u_deri_atac(self, args):
+         #alpha = self.compute_alpha(args)
+         #u_deri_atac = alpha - self.Mu[:,self.velocity_genes] * exp(args[1])
+         #return u_deri_atac
+
     def get_opt_args(self, iter, args):
         remain = iter % 400
         

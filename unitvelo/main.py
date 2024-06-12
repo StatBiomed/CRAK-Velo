@@ -12,17 +12,17 @@ def run_model(config):
     logger = config.get_logger('train')
     logger.info('Inferring RNA velocity with scATAC-seq data')
     logger.info(f"Using adata file from {config['adata_path']}\n")
-
+    
     config = init_config(config=config)
-    adata = init_adata(config, logger, normalize=True)
-
+    adata = init_adata(config, logger, normalize=True) ##, adata_atac, df_rg_intersection
+      
     scv.settings.presenter_view = True
     scv.settings.verbosity = 0
     scv.settings.file_format_figs = 'png'
 
-    model = Velocity(adata, logger, config=config)
+    model = Velocity(adata, logger, config=config) ##, adata_atac, df_rg_intersection
     model.get_velo_genes()
-
+    
     adata = model.fit_velo_genes()
     adata.uns['basis'] = config['preprocessing']['basis']
 

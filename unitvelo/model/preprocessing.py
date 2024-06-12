@@ -1,5 +1,6 @@
 import scvelo as scv
 import scanpy as sc
+#import pandas as pd
 
 def init_config(config=None):
     if config['fitting_option']['mode'] == 1:
@@ -19,6 +20,8 @@ def init_config(config=None):
 
 def init_adata(config, logger, normalize=True):
     adata = scv.read(config['adata_path'])
+    #adata_atac = scv.read(config['atac_adata_path'])
+    #df_rg_intersection = pd.read_csv(config['regions_genes_intersections'])
 
     if normalize:
         scv.pp.filter_and_normalize(
@@ -37,4 +40,4 @@ def init_adata(config, logger, normalize=True):
     else:
         scv.pp.neighbors(adata)
 
-    return adata
+    return adata#, adata_atac, df_rg_intersection

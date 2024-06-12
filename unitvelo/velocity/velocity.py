@@ -27,7 +27,7 @@ class Velocity:
         self.Ms = adata.layers["spliced"] if config['preprocessing']['use_raw'] else adata.layers["Ms"].copy()
         self.Mu = adata.layers["unspliced"] if config['preprocessing']['use_raw'] else adata.layers["Mu"].copy()
         self.Ms, self.Mu = make_dense(self.Ms), make_dense(self.Mu)
-        ##self.Matac = self.adata_atac.X ##(sparse matrix)
+        ##self.Matac = self.adata_atac.X ##(sparse matrix) ###I am not sure we need this one
         #self.M_acc = self.adata_atac.obsm["cisTopic"].numpy()
         
         self.min_r2 = min_r2
@@ -190,7 +190,8 @@ class Velocity:
                 adata, 
                 idx=self.velocity_genes,
                 Ms=Ms_scale, 
-                Mu=Mu_scale, 
+                Mu=Mu_scale,
+                #M_acc = self.M_acc,
                 config=self.config,
                 logger=self.logger
             )
@@ -201,4 +202,4 @@ class Velocity:
         else:
             Ms_scale, Mu_scale = self.Ms, self.Mu
 
-        return self.fit_curve(self.adata, Ms_scale, Mu_scale)
+        return self.fit_curve(self.adata, Ms_scale, Mu_scale) 

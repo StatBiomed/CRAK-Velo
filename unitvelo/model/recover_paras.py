@@ -24,6 +24,7 @@ class Recover_Paras(Model_Utils):
         adata,
         Ms,
         Mu,
+        #M_acc,
         idx=None,
         config=None,
         logger=None
@@ -282,6 +283,7 @@ def lagrange(
     idx=None,
     Ms=None,
     Mu=None,
+    #M_acc = None,
     config=None,
     logger=None
 ):
@@ -292,6 +294,7 @@ def lagrange(
         adata,
         Ms,
         Mu,
+        #M_acc,
         idx=idx,
         config=config,
         logger=logger

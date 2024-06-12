@@ -104,30 +104,33 @@ class Model_Utils():
 
         #nregions = self.Matac.shape[1]
         #ngenes = self.Ms.shape[1]
-        # rows = self.df_rg_intersection["gene_coordinate"]
-        # columns = self.df_rg_intersection["region_coordinate"]
-        # B = np.zeros((ngenes, nregions), dtype=int)
+        # columns = self.df_rg_intersection["gene_coordinate"]
+        # rows = self.df_rg_intersection["region_coordinate"]
+        # B = np.zeros((nregions, ngenes), dtype=int)
         # B[rows, columns] = 1
         # return B
         
     #def velo_gene_regions_binary_matrix(self, B):
-         #self.B_velo_genes = B[self.velocity_genes,:]
-         #non_zero_regions = B_velo_genes.sum(axis=0)!=0
-         #self.adata_atac.var["velo_gene_region"] = non_zero_regions
-         #B_velo_genes = B_velo_genes[:,non_zero_regions]
+        ########## This function is written just un case we wanted to take regions associated with velocity genes#########
+         #self.B_velo_genes = B[:, self.velocity_genes]
+         #kept_regions = B_velo_genes.sum(axis=1)!=0
+         #self.adata_atac.var["velo_gene_region"] = kept_regions
+         #B_velo_genes = B_velo_genes[kept_regions,:]
          
-         #return B_velo_genes, nonzero_regions    
+         #return B_velo_genes, kept_regions    
 
-    #def cell_velo_regions_matrix(self, nonzero_regions):
-         #M_velo_acc = self.M_acc[:,nonzero_regions]
+    #def cell_velo_regions_matrix(self, kept_regions):
+         #M_velo_acc = self.M_acc[kept_regions,:]
          # return M_velo_acc
 
     #def velo_regions_matrices(self):
          #self.B = self.gene_regions_binary_matrix()
          #self.B_tensor = tf.convert_to_tensor(self.B)
          #self.M_velo_acc = self.M_acc
-         ####self.B, nonzero_regions = self.velo_gene_regions_binary_matrix(B)
-         ####self.M_velo_acc = self.cell_velo_regions_matrix(nonzero_regions)
+
+         #######If we ant velocity regions######
+         ####self.B, kept_regions = self.velo_gene_regions_binary_matrix(B)
+         ####self.M_velo_acc = self.cell_velo_regions_matrix(kept_regions)
     
          
          
@@ -227,14 +230,17 @@ class Model_Utils():
         return tf.cast(x, dtype=tf.float32)
     
     #def region_dynamics_matrix(self):
+    #######order each region according to cell time (order the rows)#####
          # time_order = np.argsort(self.t_cell)
          # M_acc_ordered = self.M_velo_acc[time_order, :]
          # return M_acc_oredered
     
 
     #def smooth_acc_dynamics(self):
+    
          #M_acc_oredered = self.region_dynamics_matrix()
-         #M_acc_oredered_smoothed = np..empty_like(M_acc_oredered.numpy()) 
+        #######smooth the accessibility (after ordering) using gaussian process#####
+         #M_acc_oredered_smoothed = np.empty_like(M_acc_oredered.numpy()) 
          #n_regions = M_acc_oredered.shape[1]
          #M_acc_oredered = torch.tensor(M_acc_oredered)
          
@@ -254,13 +260,13 @@ class Model_Utils():
          #M_acc_oredered_smoothed = self.smooth_acc_dynamics()
          #exp(args[7]) = np.multiply(self.B_tensor, exp(args[7]))
          #exp(args[7]) = tf.cast(exp(args[7]), tf.float32)
-         #wr = np.matmul(M_acc_oredered_smoothed, tf.transpose(exp(args[7]))) 
-         #alpha = wr * exp(args[8])
+         #wr = np.matmul(M_acc_oredered_smoothed, exp(args[7])) 
+         #alpha =  exp(args[8]) * wr
          #return alpha
          
     #def compute_u_deri_atac(self, args):
          #alpha = self.compute_alpha(args)
-         #u_deri_atac = alpha - self.Mu[:,self.velocity_genes] * exp(args[1])
+         #u_deri_atac = alpha - tf.multiply(exp(args[1]),self.Mu) 
          #return u_deri_atac
 
     def get_opt_args(self, iter, args):

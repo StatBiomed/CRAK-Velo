@@ -274,17 +274,17 @@ class Model_Utils():
         
         if self.config['fitting_option']['mode'] == 1:
             if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6]]
+                args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6]]#, args[7], args[8]]
 
             else:
-                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6]]
+                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6]]#, args[7], args[8]]
         
         if self.config['fitting_option']['mode'] == 2:
             if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]
+                args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]#, args[7], args[8]]
                     
             else:
-                args_to_optimize = [args[0], args[1], args[3], args[5]]
+                args_to_optimize = [args[0], args[1], args[3], args[5]]#, args[7], args[8]]
         
         return args_to_optimize
     

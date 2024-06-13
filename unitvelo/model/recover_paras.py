@@ -21,16 +21,17 @@ var = tf.math.reduce_variance
 class Recover_Paras(Model_Utils):
     def __init__(
         self,
-        adata,
+        adata,#M_acc, B
         Ms,
         Mu,
-        #M_acc,
         idx=None,
         config=None,
         logger=None
     ):
         super().__init__(
-            adata=adata, 
+            adata=adata,
+            #M_acc = M_acc,
+            #B = B 
             Ms=Ms,
             Mu=Mu,
             config=config,
@@ -279,11 +280,10 @@ class Recover_Paras(Model_Utils):
                 self.adata.var[f"fit_{name}"] = np.exp(self.adata.var[f"fit_{name}"])            
 
 def lagrange(
-    adata,
+    adata,#M_acc, B
     idx=None,
     Ms=None,
     Mu=None,
-    #M_acc = None,
     config=None,
     logger=None
 ):
@@ -291,10 +291,9 @@ def lagrange(
         adata.var_names_make_unique()
 
     model = Recover_Paras(
-        adata,
+        adata,#M_acc, B
         Ms,
         Mu,
-        #M_acc,
         idx=idx,
         config=config,
         logger=logger

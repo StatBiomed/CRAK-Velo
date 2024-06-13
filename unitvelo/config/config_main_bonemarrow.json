@@ -4,7 +4,6 @@
     
     "adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow.h5ad",
     "atac_adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow_atac.h5ad",
-    "regions_genes_intersections": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow.bed",
     "cluster_name": "clusters",
 
     "system": {
@@ -19,7 +18,8 @@
         "n_pcs": 30,
         "n_neighbors": 30,
         "use_raw": false,
-        "rescale_data": true
+        "rescale_data": true,
+        "window": 10e5
     },
 
     "base_trainer": {

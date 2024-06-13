@@ -1,5 +1,5 @@
 from velocity import Velocity
-from model import init_adata, init_config
+from model import init_adata, init_config#, genes_regions_interesctions
 import scvelo as scv
 import os
 from utils import ConfigParser, set_seed
@@ -14,13 +14,15 @@ def run_model(config):
     logger.info(f"Using adata file from {config['adata_path']}\n")
     
     config = init_config(config=config)
-    adata = init_adata(config, logger, normalize=True) ##, adata_atac, df_rg_intersection
+    adata = init_adata(config, logger, normalize=True) ##, adata_atac
+    #df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
+    #B, adata_atac = gene_regions_binary_matrix(adata, adata_atac, df_rg_intersection)
       
     scv.settings.presenter_view = True
     scv.settings.verbosity = 0
     scv.settings.file_format_figs = 'png'
 
-    model = Velocity(adata, logger, config=config) ##, adata_atac, df_rg_intersection
+    model = Velocity(adata, logger, config=config) ##, adata_atac, B
     model.get_velo_genes()
     
     adata = model.fit_velo_genes()

@@ -12,7 +12,7 @@ class Velocity:
         self,
         adata=None,
         #adata_atac = None,
-        #df_rg_intersection = None
+        #B = None
         logger=None,
         min_ratio=0.01,
         min_r2=0.01,
@@ -21,7 +21,7 @@ class Velocity:
     ):
         self.adata = adata
         #self_adata_atac = adata_atac
-        #self.df_rg_intersection = df_rg_intersection
+        #self.B = B
         self.logger = logger
 
         self.Ms = adata.layers["spliced"] if config['preprocessing']['use_raw'] else adata.layers["Ms"].copy()
@@ -182,16 +182,15 @@ class Velocity:
         self.logger.info(f'Using GPU card: {gpu_id}')
         return f'/gpu:{gpu_id}'
 
-    def fit_curve(self, adata, Ms_scale, Mu_scale):
+    def fit_curve(self, adata, Ms_scale, Mu_scale):#M_acc, B
         self.device = self._prepare_device(self.config['system']['gpu_id'])
 
         with tf.device(self.device):
             return lagrange(
-                adata, 
+                adata, #M_acc, B
                 idx=self.velocity_genes,
                 Ms=Ms_scale, 
                 Mu=Mu_scale,
-                #M_acc = self.M_acc,
                 config=self.config,
                 logger=self.logger
             )
@@ -202,4 +201,4 @@ class Velocity:
         else:
             Ms_scale, Mu_scale = self.Ms, self.Mu
 
-        return self.fit_curve(self.adata, Ms_scale, Mu_scale) 
+        return self.fit_curve(self.adata, Ms_scale, Mu_scale) #self.M_acc, self.B

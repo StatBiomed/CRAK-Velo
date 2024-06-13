@@ -50,15 +50,18 @@ class Model_Utils():
     def __init__(
         self, 
         adata=None,
+        #M_acc=None,
+        #B=None,
         Ms=None,
         Mu=None,
-        #M_acc=None,
+        
         config=None,
         logger=None
     ):
         self.adata = adata
         self.Ms, self.Mu = Ms, Mu
         #self.M_acc = M_acc
+        #self.B = B
         self.config = config
         self.logger = logger
 
@@ -95,21 +98,10 @@ class Model_Utils():
                 name='intercept'
             )
         
-       
-
         #self.region_weights = tf.Variable(tf.ones((nregions,ngenes) * 0.01, dtype=tf.float32), name='log_weights')
         #self.etta = tf.Variable(tf.ones((1, ngenes), dtype=tf.float32) * 0.5, name='log_etta')
+       
     
-    #def gene_regions_binary_matrix(self):
-
-        #nregions = self.Matac.shape[1]
-        #ngenes = self.Ms.shape[1]
-        # columns = self.df_rg_intersection["gene_coordinate"]
-        # rows = self.df_rg_intersection["region_coordinate"]
-        # B = np.zeros((nregions, ngenes), dtype=int)
-        # B[rows, columns] = 1
-        # return B
-        
     #def velo_gene_regions_binary_matrix(self, B):
         ########## This function is written just un case we wanted to take regions associated with velocity genes#########
          #self.B_velo_genes = B[:, self.velocity_genes]
@@ -124,7 +116,6 @@ class Model_Utils():
          # return M_velo_acc
 
     #def velo_regions_matrices(self):
-         #self.B = self.gene_regions_binary_matrix()
          #self.B_tensor = tf.convert_to_tensor(self.B)
          #self.M_velo_acc = self.M_acc
 
@@ -258,6 +249,7 @@ class Model_Utils():
     
     #def compute_alpha(self, args):
          #M_acc_oredered_smoothed = self.smooth_acc_dynamics()
+         #M_acc_oredered_smoothed = tf.convert_to_tensor(M_acc_oredered_smoothed)
          #exp(args[7]) = np.multiply(self.B_tensor, exp(args[7]))
          #exp(args[7]) = tf.cast(exp(args[7]), tf.float32)
          #wr = np.matmul(M_acc_oredered_smoothed, exp(args[7])) 

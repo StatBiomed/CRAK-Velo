@@ -100,7 +100,9 @@ class Model_Utils():
         
         #self.region_weights = tf.Variable(tf.ones((nregions,ngenes) * 0.01, dtype=tf.float32), name='log_weights')
         #self.etta = tf.Variable(tf.ones((1, ngenes), dtype=tf.float32) * 0.5, name='log_etta')
-       
+        #genes_with_no_regions = tf.sum(B, axis=0) == 0
+        #self.B_genes_nr =  tf.ones([1, ngenes], tf.int32)
+        #self.B_genes_nr[0,genes_with_no_regions] = 0
     
     #def velo_gene_regions_binary_matrix(self, B):
         ########## This function is written just un case we wanted to take regions associated with velocity genes#########
@@ -250,10 +252,21 @@ class Model_Utils():
     #def compute_alpha(self, args):
          #M_acc_oredered_smoothed = self.smooth_acc_dynamics()
          #M_acc_oredered_smoothed = tf.convert_to_tensor(M_acc_oredered_smoothed)
-         #exp(args[7]) = np.multiply(self.B_tensor, exp(args[7]))
-         #exp(args[7]) = tf.cast(exp(args[7]), tf.float32)
-         #wr = np.matmul(M_acc_oredered_smoothed, exp(args[7])) 
-         #alpha =  exp(args[8]) * wr
+
+         #x = np.multiply(self.B_tensor, args[7])
+         #x = tf.cast(x, tf.float32)
+         #self.args[7] = x
+         #x_exp = exp(x)
+         #x_exp = np.multiply(self.B_tensor, x_exp)
+         #wr = np.matmul(M_acc_oredered_smoothed, x_exp) ##ncells by n genes
+
+         #x_etta =  np.multiply(self.B_genes_nr, args[8])
+         #x_etta = tf.cast(x_etta, tf.float32)
+         #self.args[8] = x_etta
+         #x_etta_exp = exp(x_etta)
+         #x_etta_exp = np.multiply(self.B_genes_nr, x_etta_exp)
+         
+         #alpha =  x_etta_exp * wr
          #return alpha
          
     #def compute_u_deri_atac(self, args):

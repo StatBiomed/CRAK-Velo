@@ -125,13 +125,14 @@ class Recover_Paras(Model_Utils):
     def get_squared_errors(self, args, t_cell, iter):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
         self.udiff, self.sdiff = self.Mu - self.u_func, self.Ms - self.s_func
-        #self.u_deri_func = get_u_deri(args, t_cell)
+        #self.u_deri_func = self.get_u_deri(args, t_cell)
+        #self.u_deri_func[:, self.B_genes_nr] = 0
         #self.u_deri_atac = self.compute_u_deri_atac(args)
         #self.u_deri_diff = self.u_deri_func - self.u_deri_atac
 
         self.u_r2 = square(self.udiff)
         self.s_r2 = square(self.sdiff)
-        #self.u_deri2 = square(self.u_deri_diff)
+        #self.u_deri_r2 = square(self.u_deri_diff)
         
         if (self.config['fitting_option']['mode'] == 1) & \
             (iter > int(0.9 * self.config['base_trainer']['epochs'])) & \
@@ -154,12 +155,12 @@ class Recover_Paras(Model_Utils):
             - (self.Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
             - sum(self.s_r2, axis=0) / (2 * self.vars) 
 
-    def finalize_loss(self, iter, s_r2, u_r2):
+    def finalize_loss(self, iter, s_r2, u_r2):#u_deri_r2
         if iter < self.config['base_trainer']['epochs'] / 2:
             remain = iter % 400
-            loss = s_r2 if remain < 200 else u_r2
+            loss = s_r2 if remain < 200 else u_r2  #+u_deri_r2
         else:
-            loss = s_r2 + u_r2 
+            loss = s_r2 + u_r2 #+u_deri_r2
 
         return tf.where(tf.math.is_finite(loss), loss, 0)
 
@@ -177,6 +178,7 @@ class Recover_Paras(Model_Utils):
             iter,
             sum(self.s_r2, axis=0), 
             sum(self.u_r2, axis=0)
+            #, sum(self.u_deri_r2, axis=0)
         )
 
     def init_optimizer(self):
@@ -199,13 +201,19 @@ class Recover_Paras(Model_Utils):
         _ = self.get_fit_s(args, self.t_cell)
         s_derivative = self.get_s_deri(args, self.t_cell)
 
+        # u_derivative = self.get_u_deri(args, self.t_cell)
+        
+        # u_derivative_atac = self.compute_u_deri_atac(args)
+    
+
         self.post_utils(args)
 
         self.adata.var['velocity_genes'] = self.idx
         self.adata.layers['velocity'] = s_derivative.numpy()
         self.adata.layers['fit_t'] = self.t_cell.numpy() if self.config['fitting_option']['aggregrate_t'] else self.t_cell
         self.adata.layers['fit_t'][:, ~self.adata.var['velocity_genes'].values] = np.nan
-
+        #self.adata.layers['u_derrivative'] = u_derivative.numpy()
+        #self.adata.layers['u_atac'] = u_derivative_atac.numpy()
     def fit_likelihood(self):
         optimizer = self.init_optimizer()
 
@@ -270,14 +278,25 @@ class Recover_Paras(Model_Utils):
         self.adata.var['fit_sr2'] = r2_spliced.numpy()
         self.adata.var['fit_ur2'] = r2_unspliced.numpy()
 
+        
+
     def save_pars(self, paras):
-        columns = ['a', 'h', 'gamma', 'beta']
+        columns = ['a', 'h', 'gamma', 'beta','etta']
 
         for i, name in enumerate(self.default_pars_names):
-            self.adata.var[f"fit_{name}"] = np.transpose(np.squeeze(paras[i]))
+            if name == 'region_weights':
+               self.adata.varm[f"fit_{name}"] = np.transpose(paras[i])
+               self.adata.varm[f"fit_{name}"] = np.exp(self.adata.varm[f"fit_{name}"])
 
-            if name in columns:
-                self.adata.var[f"fit_{name}"] = np.exp(self.adata.var[f"fit_{name}"])            
+            else:
+                self.adata.var[f"fit_{name}"] = np.transpose(np.squeeze(paras[i]))
+
+                if name in columns:
+                    self.adata.var[f"fit_{name}"] = np.exp(self.adata.var[f"fit_{name}"])
+            
+            
+
+                        
 
 def lagrange(
     adata,#M_acc, B

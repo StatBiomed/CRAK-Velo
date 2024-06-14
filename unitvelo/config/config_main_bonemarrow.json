@@ -2,9 +2,9 @@
     "name": "VelocityDemo",
     "logger_config_path": "/home/mingzegao/ssd/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow.h5ad",
-    "atac_adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/BoneMarrow/human_cd34_bone_marrow_atac.h5ad",
-    "cluster_name": "clusters",
+    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/RNA_data.h5ad",
+    "atac_adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/ATAC_data.h5ad",
+    "cluster_name": "celltype",
 
     "system": {
         "gpu_id": 1,
@@ -24,7 +24,7 @@
 
     "base_trainer": {
         "epochs": 12000,
-        "save_dir": "/home/mingzegao/ssd/UniTVelo-ATAC/trails",
+        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/",
         "verbosity": 2,
         "learning_rate": 1e-2
     },

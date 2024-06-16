@@ -7,12 +7,13 @@ import tensorflow as tf
 from sklearn import linear_model
 from sklearn.metrics import r2_score
 
+
 class Velocity:
     def __init__(
         self,
         adata=None,
-        #adata_atac = None,
-        #B = None
+        adata_atac = None,
+        B = None,
         logger=None,
         min_ratio=0.01,
         min_r2=0.01,
@@ -20,16 +21,17 @@ class Velocity:
         config=None
     ):
         self.adata = adata
-        #self_adata_atac = adata_atac
-        #self.B = B
+        self.adata_atac = adata_atac
+        self.B = B
         self.logger = logger
 
         self.Ms = adata.layers["spliced"] if config['preprocessing']['use_raw'] else adata.layers["Ms"].copy()
         self.Mu = adata.layers["unspliced"] if config['preprocessing']['use_raw'] else adata.layers["Mu"].copy()
         self.Ms, self.Mu = make_dense(self.Ms), make_dense(self.Mu)
         ##self.Matac = self.adata_atac.X ##(sparse matrix) ###I am not sure we need this one
-        #self.M_acc = self.adata_atac.obsm["cisTopic"]
-        
+        self.M_acc = self.adata_atac.obsm["cisTopic"]
+       
+     
         self.min_r2 = min_r2
         self.min_ratio = min_ratio
         
@@ -182,12 +184,12 @@ class Velocity:
         self.logger.info(f'Using GPU card: {gpu_id}')
         return f'/gpu:{gpu_id}'
 
-    def fit_curve(self, adata, Ms_scale, Mu_scale):#M_acc, B
+    def fit_curve(self, adata, M_acc, B, Ms_scale, Mu_scale):
         self.device = self._prepare_device(self.config['system']['gpu_id'])
 
         with tf.device(self.device):
             return lagrange(
-                adata, #M_acc, B
+                adata, M_acc, B,
                 idx=self.velocity_genes,
                 Ms=Ms_scale, 
                 Mu=Mu_scale,
@@ -201,4 +203,4 @@ class Velocity:
         else:
             Ms_scale, Mu_scale = self.Ms, self.Mu
 
-        return self.fit_curve(self.adata, Ms_scale, Mu_scale) #self.M_acc, self.B
+        return self.fit_curve(self.adata, self.M_acc, self.B, Ms_scale, Mu_scale) 

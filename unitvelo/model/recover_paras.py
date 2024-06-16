@@ -21,7 +21,9 @@ var = tf.math.reduce_variance
 class Recover_Paras(Model_Utils):
     def __init__(
         self,
-        adata,#M_acc, B
+        adata, 
+        M_acc, 
+        B,
         Ms,
         Mu,
         idx=None,
@@ -30,8 +32,8 @@ class Recover_Paras(Model_Utils):
     ):
         super().__init__(
             adata=adata,
-            #M_acc = M_acc,
-            #B = B 
+            M_acc = M_acc,
+            B = B, 
             Ms=Ms,
             Mu=Mu,
             config=config,
@@ -125,14 +127,21 @@ class Recover_Paras(Model_Utils):
     def get_squared_errors(self, args, t_cell, iter):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
         self.udiff, self.sdiff = self.Mu - self.u_func, self.Ms - self.s_func
-        #self.u_deri_func = self.get_u_deri(args, t_cell)
-        #self.u_deri_func[:, self.B_genes_nr] = 0
-        #self.u_deri_atac = self.compute_u_deri_atac(args)
-        #self.u_deri_diff = self.u_deri_func - self.u_deri_atac
-
+        self.u_deri_func = self.get_u_deri(args, t_cell)
+        tf.gather(self.u_deri_func, self.indices)
+       
+        self.u_deri_func = self.u_deri_func.numpy()
+        self.u_deri_func[:, self.indices] = 0
+        
+        latent_time_ = self.get_interim_t(self.t_cell, self.adata.var['velocity_genes'].values)
+        latent_time_ = min_max(latent_time_[:, 0]) 
+        self.u_deri_atac = self.compute_u_deri_atac(args, latent_time_)
+        self.u_deri_diff = self.u_deri_func - self.u_deri_atac
+       
         self.u_r2 = square(self.udiff)
         self.s_r2 = square(self.sdiff)
-        #self.u_deri_r2 = square(self.u_deri_diff)
+        
+        self.u_deri_r2 = square(self.u_deri_diff)
         
         if (self.config['fitting_option']['mode'] == 1) & \
             (iter > int(0.9 * self.config['base_trainer']['epochs'])) & \
@@ -155,12 +164,12 @@ class Recover_Paras(Model_Utils):
             - (self.Ms.shape[0] / 2) * log(2 * self.pi * self.vars) \
             - sum(self.s_r2, axis=0) / (2 * self.vars) 
 
-    def finalize_loss(self, iter, s_r2, u_r2):#u_deri_r2
+    def finalize_loss(self, iter, s_r2, u_r2, u_deri_r2):#
         if iter < self.config['base_trainer']['epochs'] / 2:
             remain = iter % 400
-            loss = s_r2 if remain < 200 else u_r2  #+u_deri_r2
+            loss = s_r2 if remain < 200 else u_r2+ u_deri_r2
         else:
-            loss = s_r2 + u_r2 #+u_deri_r2
+            loss = s_r2 + u_r2 + u_deri_r2
 
         return tf.where(tf.math.is_finite(loss), loss, 0)
 
@@ -177,8 +186,8 @@ class Recover_Paras(Model_Utils):
         return self.finalize_loss(
             iter,
             sum(self.s_r2, axis=0), 
-            sum(self.u_r2, axis=0)
-            #, sum(self.u_deri_r2, axis=0)
+            sum(self.u_r2, axis=0),
+            sum(self.u_deri_r2, axis=0)
         )
 
     def init_optimizer(self):
@@ -201,9 +210,9 @@ class Recover_Paras(Model_Utils):
         _ = self.get_fit_s(args, self.t_cell)
         s_derivative = self.get_s_deri(args, self.t_cell)
 
-        # u_derivative = self.get_u_deri(args, self.t_cell)
+        u_derivative = self.get_u_deri(args, self.t_cell)
         
-        # u_derivative_atac = self.compute_u_deri_atac(args)
+        u_derivative_atac = self.compute_u_deri_atac(args)
     
 
         self.post_utils(args)
@@ -212,8 +221,8 @@ class Recover_Paras(Model_Utils):
         self.adata.layers['velocity'] = s_derivative.numpy()
         self.adata.layers['fit_t'] = self.t_cell.numpy() if self.config['fitting_option']['aggregrate_t'] else self.t_cell
         self.adata.layers['fit_t'][:, ~self.adata.var['velocity_genes'].values] = np.nan
-        #self.adata.layers['u_derrivative'] = u_derivative.numpy()
-        #self.adata.layers['u_atac'] = u_derivative_atac.numpy()
+        self.adata.layers['u_derrivative'] = u_derivative.numpy()
+        self.adata.layers['u_atac'] = u_derivative_atac.numpy()
     def fit_likelihood(self):
         optimizer = self.init_optimizer()
 
@@ -231,8 +240,8 @@ class Recover_Paras(Model_Utils):
                     self.t, 
                     self.log_h, 
                     self.intercept,
-                    #self.log_region_weights,
-                    #self.log_etta
+                    self.log_region_weights,
+                    self.log_etta
                 ]
                 obj = self.compute_loss(args, self.t_cell, iter, progress_bar)
 
@@ -299,7 +308,9 @@ class Recover_Paras(Model_Utils):
                         
 
 def lagrange(
-    adata,#M_acc, B
+    adata,
+    M_acc,
+    B,
     idx=None,
     Ms=None,
     Mu=None,
@@ -310,7 +321,9 @@ def lagrange(
         adata.var_names_make_unique()
 
     model = Recover_Paras(
-        adata,#M_acc, B
+        adata,
+        M_acc,
+        B,
         Ms,
         Mu,
         idx=idx,

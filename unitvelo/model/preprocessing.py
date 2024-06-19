@@ -23,7 +23,7 @@ def init_config(config=None):
 def init_adata(config, logger, normalize=True):
     adata = scv.read(config['adata_path'])
     adata_atac = scv.read(config['adata_atac_path'])
-    df_rg_intersection = pd.read_csv(config['df_rg_intersection_path'], delimiter= "\t")
+    df_rg_intersection = pd.read_csv(config['df_rg_intersection_path'], delimiter= "\t", index_col=[0])
 
     if normalize:
         scv.pp.filter_and_normalize(

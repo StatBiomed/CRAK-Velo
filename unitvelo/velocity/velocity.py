@@ -12,8 +12,8 @@ class Velocity:
     def __init__(
         self,
         adata=None,
-        adata_atac = None,
-        B = None,
+        adata_atac=None,
+        B=None,
         logger=None,
         min_ratio=0.01,
         min_r2=0.01,
@@ -28,9 +28,9 @@ class Velocity:
         self.Ms = adata.layers["spliced"] if config['preprocessing']['use_raw'] else adata.layers["Ms"].copy()
         self.Mu = adata.layers["unspliced"] if config['preprocessing']['use_raw'] else adata.layers["Mu"].copy()
         self.Ms, self.Mu = make_dense(self.Ms), make_dense(self.Mu)
-        ##self.Matac = self.adata_atac.X ##(sparse matrix) ###I am not sure we need this one
+
+        # self.Matac = self.adata_atac.X # (sparse matrix) I am not sure we need this one
         self.M_acc = self.adata_atac.obsm["cisTopic"]
-       
      
         self.min_r2 = min_r2
         self.min_ratio = min_ratio
@@ -117,10 +117,7 @@ class Velocity:
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
         weights = np.array(nonzero_s & nonzero_u, dtype=bool)
         self.nobs = np.sum(weights, axis=0)
-
-    
-       
-        
+ 
     def fit_linear(self, Ms, Mu):
         index = self.adata.var.index
         linear_results = pd.DataFrame(

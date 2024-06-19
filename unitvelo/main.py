@@ -4,18 +4,18 @@ import scvelo as scv
 import os
 from utils import ConfigParser, set_seed
 import argparse
-import logging
 
 def run_model(config):
     set_seed(config['system']['seed'])
     # writer = SummaryWriter(log_dir=config._log_dir)
 
-    logger = logging.getLogger('trainer')
+    logger = config.getLogger('trainer')
     logger.info('Inferring RNA velocity with scATAC-seq data')
     logger.info(f"Using adata file from {config['adata_path']}\n")
     
     config = init_config(config=config)
-    adata , adata_atac = init_adata(config, logger, normalize=True) ##
+    adata , adata_atac = init_adata(config, logger, normalize=True) 
+    
     df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
     B, adata_atac = gene_regions_binary_matrix(adata, adata_atac, df_rg_intersection)
       

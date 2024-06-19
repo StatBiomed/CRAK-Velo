@@ -44,7 +44,6 @@ def GPR(device, max_epochs = 1, lr = 0.00001 ):
             batch_size = -1,
             )
         return gpr
-    
 
 class Model_Utils():
     def __init__(
@@ -68,6 +67,7 @@ class Model_Utils():
     def init_vars(self):
         ngenes = self.Ms.shape[1]
         nregions = self.M_acc.shape[1]
+
         self.log_beta = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='log_beta')
         self.intercept = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32), name='intercept')
 
@@ -101,9 +101,11 @@ class Model_Utils():
         self.log_region_weights = tf.Variable(tf.ones((nregions,ngenes), dtype=tf.float32) * 0.01, name='log_weights')
         self.log_etta = tf.Variable(tf.ones((1, ngenes), dtype=tf.float32) * 0.5, name='log_etta')
         self.log_region_weights = tf.multiply(self.B, self.log_region_weights )
+
         genes_with_no_regions = sum(self.B, axis=0) == 0
         self.B_genes_nr =  np.ones([1, ngenes])
         self.B_genes_nr[0,genes_with_no_regions] = 0
+        
         self.indices = tf.where(self.B_genes_nr==0)[:,0].numpy()
         #self.B_genes_nr = tf.convert_to_tensor(self.B_genes_nr)
         self.log_etta = tf.multiply(self.B_genes_nr, self.log_etta)

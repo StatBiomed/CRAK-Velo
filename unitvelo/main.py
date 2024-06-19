@@ -14,9 +14,9 @@ def run_model(config):
     logger.info(f"Using adata file from {config['adata_path']}\n")
     
     config = init_config(config=config)
-    adata , adata_atac = init_adata(config, logger, normalize=True) 
+    adata , adata_atac, df_rg_intersection = init_adata(config, logger, normalize=True) 
     
-    df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
+    #df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
     B, adata_atac = gene_regions_binary_matrix(adata, adata_atac, df_rg_intersection)
       
     scv.settings.presenter_view = True

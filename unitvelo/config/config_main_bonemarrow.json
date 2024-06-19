@@ -4,6 +4,7 @@
     
     "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/RNA_data.h5ad",
     "atac_adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/ATAC_data.h5ad",
+    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/df_rg_intersection.csv",
     "cluster_name": "celltype",
     
 

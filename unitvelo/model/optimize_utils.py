@@ -22,29 +22,29 @@ def col_minmax(matrix, gene_id=None):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
 
-# class RbfModule(gpytorch.models.ExactGP):
-#     def __init__(self, likelihood, noise_init=None):
+class RbfModule(gpytorch.models.ExactGP):
+    def __init__(self, likelihood, noise_init=None):
         
-#         super().__init__(train_inputs=None, train_targets=None, likelihood=likelihood)
-#         self.mean_module = gpytorch.means.ConstantMean()
-#         self.covar_module = gpytorch.kernels.RBFKernel()
+        super().__init__(train_inputs=None, train_targets=None, likelihood=likelihood)
+        self.mean_module = gpytorch.means.ConstantMean()
+        self.covar_module = gpytorch.kernels.RBFKernel()
 
-#     def forward(self, x):
-#         mean_x = self.mean_module(x)
-#         covar_x = self.covar_module(x)
-#         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+    def forward(self, x):
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
+        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
-# def GPR(device, max_epochs=1, lr=0.00001 ):
-#     gpr = ExactGPRegressor(
-#         RbfModule,
-#         optimizer=torch.optim.Adam,
-#         lr=lr,
-#         max_epochs=max_epochs,
-#         device=device,
-#         batch_size=-1,
-#         verbose=False
-#         )
-#     return gpr
+def GPR(device, max_epochs=1, lr=0.00001 ):
+    gpr = ExactGPRegressor(
+        RbfModule,
+        optimizer=torch.optim.Adam,
+        lr=lr,
+        max_epochs=max_epochs,
+        device=device,
+        batch_size=-1,
+        verbose=False
+        )
+    return gpr
 
 class Model_Utils():
     def __init__(
@@ -222,22 +222,23 @@ class Model_Utils():
     def smooth_acc_dynamics(self, latent_time_):
         M_acc_oredered = self.region_dynamics_matrix(latent_time_)
         ######smooth the accessibility (after ordering) using gaussian process#####
-        # M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
-        # n_regions = M_acc_oredered.shape[1]
+        M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
+        n_regions = M_acc_oredered.shape[1]
         M_acc_oredered = torch.tensor(M_acc_oredered)
         
-        # torch.manual_seed(0)
-        # torch.cuda.manual_seed(0)
-        # device = 'cuda' if torch.cuda.is_available() else 'cpu' 
-        # gpr = GPR(device, max_epochs = 1, lr = 0.00001 )
-        # time = torch.tensor(latent_time_.numpy())
+        torch.manual_seed(0)
+        torch.cuda.manual_seed(0)
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        gpr = GPR(device, max_epochs = 1, lr = 0.00001 )
+        time = torch.tensor(latent_time_.numpy())
 
-        # for i in np.arange(0, n_regions):
-        #     gpr.fit(time, M_acc_oredered[:,i])
-        #     M_acc_oredered_smoothed[:,i] = gpr.predict(time)
+        for i in np.arange(0, n_regions):
+            gpr.fit(time, M_acc_oredered[:,i])
+            M_acc_oredered_smoothed[:,i] = gpr.predict(time)
             
-        # return M_acc_oredered_smoothed
-        return M_acc_oredered
+        return torch.tensor(M_acc_oredered_smoothed)
+        #return M_acc_oredered
     
     def compute_alpha(self, args, latent_time_):
         M_acc_oredered_smoothed = self.smooth_acc_dynamics(latent_time_)

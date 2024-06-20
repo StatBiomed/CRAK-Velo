@@ -1,10 +1,10 @@
 {   
     "name": "VelocityDemo",
-    "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
+    "logger_config_path": "/home/mingzegao/ssd/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/RNA_data.h5ad",
-    "atac_adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/ATAC_data.h5ad",
-    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/df_rg_intersection.csv",
+    "adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/Nour/RNA_data.h5ad",
+    "adata_atac_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/Nour/ATAC_data.h5ad",
+    "df_rg_intersection_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/Nour/df_rg_intersection.csv",
     "cluster_name": "celltype",
     
 
@@ -25,8 +25,8 @@
     },
 
     "base_trainer": {
-        "epochs": 10,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/",
+        "epochs": 20,
+        "save_dir": "/home/mingzegao/ssd/UniTVelo-ATAC/trails",
         "verbosity": 2,
         "learning_rate": 1e-2
     },

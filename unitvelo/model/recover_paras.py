@@ -129,9 +129,6 @@ class Recover_Paras(Model_Utils):
         self.s_func, self.u_func = self.get_s_u(args, t_cell)
         self.udiff, self.sdiff = self.Mu - self.u_func, self.Ms - self.s_func
         self.u_deri_func = self.get_u_deri(args, t_cell)
-       
-        self.u_deri_func = self.u_deri_func.numpy()
-        self.u_deri_func[:, self.indices] = 0
         
         latent_time_ = self.get_interim_t(self.t_cell, self.adata.var['velocity_genes'].values)
         latent_time_ = min_max(latent_time_[:, 0]) 
@@ -211,9 +208,8 @@ class Recover_Paras(Model_Utils):
 
         s_derivative = self.get_s_deri(args, self.t_cell)
         u_derivative = self.get_u_deri(args, self.t_cell)
-        u_derivative_atac = self.compute_u_deri_atac(args)
+        u_derivative_atac = self.compute_u_deri_atac(args, self.t_cell[:, 0])
     
-
         self.post_utils(args)
 
         self.adata.var['velocity_genes'] = self.idx
@@ -254,7 +250,7 @@ class Recover_Paras(Model_Utils):
             gradients = tape.gradient(target=obj, sources=args_to_optimize)
 
             # convert gradients of variables with unused genes to 0
-            convert = tf.cast(self.idx, tf.float32)
+            convert = tf.cast(self.idx, tf.float32)            
             processed_grads = [g * convert for g in gradients]
 
             optimizer.apply_gradients(zip(processed_grads, args_to_optimize))

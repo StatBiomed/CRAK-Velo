@@ -95,7 +95,7 @@ class Velocity:
                     & (self.scaling > np.min([lb, 0.03]))
                     & (self.scaling < np.max([ub, 3]))
                 )
-            self.logger.info(f'# of velocity genes {self.velocity_genes.sum()} (Criterion: std of un/spliced reads should be moderate, w/o extreme values)\n')
+            self.logger.info(f'# of velocity genes {self.velocity_genes.sum()} (Criterion: std of un/spliced reads should be moderate, w/o extreme values)')
 
             self.adata.var['velocity_gamma'] = self.gamma_ref
             self.adata.var['velocity_r2'] = self.r2
@@ -160,7 +160,7 @@ class Velocity:
             & (self.scaling > np.min([lb, 0.03]))
             & (self.scaling < np.max([ub, 3]))
         )
-        self.logger.info(f'# of velocity genes {self.velocity_genes.sum()} (Criterion: std of un/spliced reads should be moderate, w/o extreme values)\n')
+        self.logger.info(f'# of velocity genes {self.velocity_genes.sum()} (Criterion: std of un/spliced reads should be moderate, w/o extreme values)')
 
     def _prepare_device(self, gpu_id):
         available_gpus = tf.config.list_physical_devices('GPU')

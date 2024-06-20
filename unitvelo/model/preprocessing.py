@@ -21,9 +21,12 @@ def init_config(config=None):
     return config
 
 def init_adata(config, logger, normalize=True):
+    logger.info(f"Using adata file from {config['adata_path']}")
+    logger.info(f"Using adata_atac file from {config['adata_atac_path']}\n")
+
     adata = scv.read(config['adata_path'])
     adata_atac = scv.read(config['adata_atac_path'])
-    df_rg_intersection = pd.read_csv(config['df_rg_intersection_path'], delimiter= "\t", index_col=[0])
+    df_rg_intersection = pd.read_csv(config['df_rg_intersection_path'], delimiter= "\t", index_col=0)
 
     if normalize:
         scv.pp.filter_and_normalize(
@@ -76,18 +79,16 @@ def init_adata(config, logger, normalize=True):
 
 #     return df_rg_intersection
 
-def gene_regions_binary_matrix(adata, adata_atac, df_rg_intersection):
+def gene_regions_binary_matrix(adata, adata_atac, df_rg_intersection, logger):
     ngenes = adata.X.shape[1]
     nregions = adata_atac.X.shape[1]
+    logger.info(f"Creating binary matrix B of shape {nregions} x {ngenes}")
     
-    columns = df_rg_intersection["gene_number"]
-    rows = df_rg_intersection["region_number"]
     B = np.zeros((nregions, ngenes), dtype=int)
-    B[rows, columns] = 1
+    B[df_rg_intersection["region_number"], df_rg_intersection["gene_number"]] = 1
+
     non_zero_regions = B.sum(axis=1) > 9
+    logger.info(f"Using {non_zero_regions.sum()} regions with more than 9 genes")
 
-    adata_atac = adata_atac[:, non_zero_regions]
-    B = B[non_zero_regions, :]
     adata_atac.obsm["cisTopic"] = adata_atac.obsm["cisTopic"][:, non_zero_regions]
-
-    return B, adata_atac
+    return B[non_zero_regions, :], adata_atac[:, non_zero_regions]

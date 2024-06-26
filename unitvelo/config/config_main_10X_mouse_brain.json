@@ -2,8 +2,8 @@
     "name": "VelocityDemo",
     "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/RNA_data.h5ad",
-    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/ATAC_data.h5ad",
+    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/RNA_data.h5ad",
+    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/ATAC_data.h5ad",
    
     
     "cluster_name": "celltype",
@@ -22,15 +22,16 @@
         "n_neighbors": 30,
         "use_raw": false,
         "rescale_data": true,
-        "window": 10000,
+        "window": 10e4,
         "reg_threshold": 1
     },
 
     "base_trainer": {
-        "epochs": 2000,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/",
+        "epochs": 10e4,
+        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/Mode_2",
         "verbosity": 2,
-        "learning_rate": 1e-2
+        "learning_rate": 1e-2,
+        "loss_mode" : 2
     },
 
     "regularization": {

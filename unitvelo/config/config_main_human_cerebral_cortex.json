@@ -19,15 +19,16 @@
         "n_neighbors": 30,
         "use_raw": false,
         "rescale_data": true,
-        "window": 1000,
+        "window": 10e4,
         "reg_threshold": 1
     },
 
     "base_trainer": {
-        "epochs": 2000,
+        "epochs": 10e4,
         "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/Mode_2/",
         "verbosity": 2,
-        "learning_rate": 1e-2
+        "learning_rate": 1e-2,
+        "loss_mode" : 2
     },
 
     "regularization": {

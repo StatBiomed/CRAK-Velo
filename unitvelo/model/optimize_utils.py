@@ -1,8 +1,8 @@
 import tensorflow as tf
 import numpy as np
-import torch
-import gpytorch
-from skorch.probabilistic import ExactGPRegressor
+#import torch
+# import gpytorch
+#from skorch.probabilistic import ExactGPRegressor
 
 exp = tf.math.exp
 pow = tf.math.pow
@@ -22,29 +22,29 @@ def col_minmax(matrix, gene_id=None):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
 
-class RbfModule(gpytorch.models.ExactGP):
-    def __init__(self, likelihood, noise_init=None):
+# class RbfModule(gpytorch.models.ExactGP):
+#     def __init__(self, likelihood, noise_init=None):
         
-        super().__init__(train_inputs=None, train_targets=None, likelihood=likelihood)
-        self.mean_module = gpytorch.means.ConstantMean()
-        self.covar_module = gpytorch.kernels.RBFKernel()
+#         super().__init__(train_inputs=None, train_targets=None, likelihood=likelihood)
+#         self.mean_module = gpytorch.means.ConstantMean()
+#         self.covar_module = gpytorch.kernels.RBFKernel()
 
-    def forward(self, x):
-        mean_x = self.mean_module(x)
-        covar_x = self.covar_module(x)
-        return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
+#     def forward(self, x):
+#         mean_x = self.mean_module(x)
+#         covar_x = self.covar_module(x)
+#         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
-def GPR(device, max_epochs=1, lr=0.00001 ):
-    gpr = ExactGPRegressor(
-        RbfModule,
-        optimizer=torch.optim.Adam,
-        lr=lr,
-        max_epochs=max_epochs,
-        device=device,
-        batch_size=-1,
-        verbose=False
-        )
-    return gpr
+# def GPR(device, max_epochs=1, lr=0.00001 ):
+#     gpr = ExactGPRegressor(
+#         RbfModule,
+#         optimizer=torch.optim.Adam,
+#         lr=lr,
+#         max_epochs=max_epochs,
+#         device=device,
+#         batch_size=-1,
+#         verbose=False
+#         )
+#     return gpr
 
 class Model_Utils():
     def __init__(
@@ -224,7 +224,7 @@ class Model_Utils():
         ######smooth the accessibility (after ordering) using gaussian process#####
         # M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
         # n_regions = M_acc_oredered.shape[1]
-        M_acc_oredered = torch.tensor(M_acc_oredered)
+        M_acc_oredered = tf.convert_to_tensor(M_acc_oredered)
         
         # torch.manual_seed(0)
         # torch.cuda.manual_seed(0)
@@ -266,19 +266,29 @@ class Model_Utils():
     def get_opt_args(self, iter, args):
         remain = iter % 400
         
-        if self.config['fitting_option']['mode'] == 1:
+        #if self.config['fitting_option']['mode'] == 1:
+        if self.config["base_trainer"]["loss_mode"] == 2:
+            
             if iter < self.config['base_trainer']['epochs'] / 2:
                 args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6], args[7], args[8]]
 
             else:
                 args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]]
-        
-        if self.config['fitting_option']['mode'] == 2:
+
+        if self.config["base_trainer"]["loss_mode"] == 1:
+           
             if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]
-                    
+                args_to_optimize = [args[2], args[3], args[4], args[5], args[7], args[8]] if remain < 200 else [args[0], args[1], args[6]]
+
             else:
-                args_to_optimize = [args[0], args[1], args[3], args[5], args[7], args[8]]
+                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]]
+        
+        # if self.config['fitting_option']['mode'] == 2:
+        #     if iter < self.config['base_trainer']['epochs'] / 2:
+        #         args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]
+                    
+        #     else:
+        #         args_to_optimize = [args[0], args[1], args[3], args[5], args[7], args[8]]
         
         return args_to_optimize
     

@@ -17,7 +17,7 @@ def run_model(config):
     adata , adata_atac = init_adata(config, logger, normalize=True) #, df_rg_intersection
     
     df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
-    df_rg_intersection.to_csv('/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/df_rg_intersection.csv',sep='\t')
+    #df_rg_intersection.to_csv('/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/df_rg_intersection.csv',sep='\t')
     B, adata_atac = gene_regions_binary_matrix(config, adata, adata_atac, df_rg_intersection, logger)
     logger.info(f"adata shape: {adata.shape} adata_atac shape: {adata_atac.shape} cisTopic shape: {adata_atac.obsm['cisTopic'].shape} binary matrix shape: {B.shape}\n")
     
@@ -37,14 +37,16 @@ def run_model(config):
     # scv.tl.velocity_graph(adata, sqrt_transform=True)
     # scv.tl.velocity_embedding(adata, basis=config['preprocessing']['basis'])
     # scv.tl.latent_time(adata, min_likelihood=None)
-
+    df = adata_atac.var
     adata.write(os.path.join(config.save_dir, f'model_last.h5ad'))
     adata_atac.write(os.path.join(config.save_dir, f'model_last_atac.h5ad'))
+    df.to_csv(os.path.join(config.save_dir, f'regions_information.csv'), sep='\t')
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='Velocity Estimation of scRNA-seq and scATAC-seq')
     args.add_argument('-c', '--config', default='config.json', type=str, help='config file path (default: None)')
     args.add_argument('-id', '--run_id', default=None, type=str, help='id of experiment (default: current time)')
-
+    args.add_argument('-w', '--window', default= None, type=int, help='window around gene (default: None)')
+    args.add_argument('-l', '--loss_mode', default= None, type=int, help='mode_of_loss_function: 1 or 2 (default: None)')
     config = ConfigParser.from_args(args)
     run_model(config)

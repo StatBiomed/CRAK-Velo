@@ -51,14 +51,13 @@ def genes_regions_interesctions(
     adata, 
     adata_atac, 
     config, 
-    col=['chrom', 'chromStart', 'chromEnd'], 
-    w=None
-):
+    col=['chrom', 'chromStart', 'chromEnd'],
+    ):
     ngenes = adata.X.shape[1]
     nregions = adata_atac.X.shape[1]
 
-    if w == None:
-        w = config['preprocessing']['window']
+    
+    w = config['preprocessing']['window']
     
     #gene_coor = adata.var.sort_values(col[0])[[col[0], col[1], col[2]]]
     gene_coor = adata.var[[col[0], col[1], col[2]]]
@@ -68,7 +67,8 @@ def genes_regions_interesctions(
     #region_coor = adata_atac.var.sort_values(col[0])[[col[0], col[1], col[2]]]
     region_coor = adata_atac.var[[col[0], col[1], col[2]]]
     region_coor["region_number"] = np.arange(0, nregions)
-
+    adata_atac.var['region_number'] = np.arange(0, nregions) 
+    
     a = pybedtools.BedTool.from_dataframe(region_coor)
     b = pybedtools.BedTool.from_dataframe(gene_coor)
     df_rg_intersection = a.window(b, w=w).overlap(cols=[2, 3, 6, 7])

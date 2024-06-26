@@ -16,7 +16,7 @@ sqrt = tf.math.sqrt
 def col_minmax(matrix, gene_id=None):
     if gene_id != None:
         if (np.max(matrix, axis=0) == np.min(matrix, axis=0)):
-            print (gene_id)
+            #print (gene_id)
             return matrix
 
     return (matrix - np.min(matrix, axis=0)) \
@@ -86,14 +86,14 @@ class Model_Utils():
             init_inter = self.adata.var['velocity_inter'].values
             self.intercept = tf.Variable(tf.reshape(init_inter, (1, self.adata.n_vars)), name='intercept')
         
-        self.log_region_weights = tf.Variable(tf.ones((nregions, ngenes), dtype=tf.float32) * 0.01, name='log_weights')
+        self.log_region_weights = tf.Variable(tf.zeros((nregions, ngenes), dtype=tf.float32) , name='log_weights')
         self.log_region_weights.assign(tf.multiply(self.B, self.log_region_weights))
 
         self.B_genes_nr = tf.Variable(tf.cast(sum(self.B, axis=0, keepdims=True) != 0, tf.float32), trainable=False)
         
         self.indices = tf.cast(tf.where(self.B_genes_nr == 0, 0, 1), dtype=tf.float32)
 
-        self.log_etta = tf.Variable(tf.ones((1, ngenes), dtype=tf.float32) * 0.5, name='log_etta')
+        self.log_etta = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32) , name='log_etta')
         self.log_etta.assign(tf.multiply(self.B_genes_nr, self.log_etta))
 
     #def velo_gene_regions_binary_matrix(self, B):
@@ -222,33 +222,36 @@ class Model_Utils():
     def smooth_acc_dynamics(self, latent_time_):
         M_acc_oredered = self.region_dynamics_matrix(latent_time_)
         ######smooth the accessibility (after ordering) using gaussian process#####
-        M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
-        n_regions = M_acc_oredered.shape[1]
+        # M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
+        # n_regions = M_acc_oredered.shape[1]
         M_acc_oredered = torch.tensor(M_acc_oredered)
         
-        torch.manual_seed(0)
-        torch.cuda.manual_seed(0)
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        # torch.manual_seed(0)
+        # torch.cuda.manual_seed(0)
+        # device = 'cuda' if torch.cuda.is_available() else 'cpu'
         
-        gpr = GPR(device, max_epochs = 1, lr = 0.00001 )
-        time = torch.tensor(latent_time_.numpy())
-
-        for i in np.arange(0, n_regions):
-            gpr.fit(time, M_acc_oredered[:,i])
-            M_acc_oredered_smoothed[:,i] = gpr.predict(time)
+        # gpr = GPR(device, max_epochs = 1, lr = 0.00001 )
+        # time = torch.tensor(latent_time_.numpy())
+        # print(n_regions)
+        # for i in np.arange(0, n_regions):
+        #     print(i)
+        #     gpr.fit(time, M_acc_oredered[:,i])
+        #     M_acc_oredered_smoothed[:,i] = gpr.predict(time)
             
-        return torch.tensor(M_acc_oredered_smoothed)
-        #return M_acc_oredered
+        # return torch.tensor(M_acc_oredered_smoothed)
+        return M_acc_oredered
     
     def compute_alpha(self, args, latent_time_):
         M_acc_oredered_smoothed = self.smooth_acc_dynamics(latent_time_)
         M_acc_oredered_smoothed = tf.convert_to_tensor(M_acc_oredered_smoothed)
 
-        self.log_region_weights.assign(self.B * args[7])
-        self.log_etta.assign(self.B_genes_nr * args[8])
-
-        x_exp = self.B * exp(self.log_region_weights)
-        x_etta_exp = self.B_genes_nr * exp(self.log_etta)
+        #self.log_region_weights.assign(self.B * args[7])
+        #self.log_etta.assign(self.B_genes_nr * args[8])
+        log_region_weights = args[7]
+        log_etta = args[8]
+        
+        x_exp = self.B * exp(log_region_weights)
+        x_etta_exp = self.B_genes_nr * exp(log_etta)
         
         wr = tf.matmul(M_acc_oredered_smoothed, x_exp) # ncells by n genes
         alpha = x_etta_exp * wr
@@ -272,7 +275,7 @@ class Model_Utils():
         
         if self.config['fitting_option']['mode'] == 2:
             if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1], args[7], args[8]]
+                args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]
                     
             else:
                 args_to_optimize = [args[0], args[1], args[3], args[5], args[7], args[8]]

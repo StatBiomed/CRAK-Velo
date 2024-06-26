@@ -1,28 +1,34 @@
-{
+{   
     "name": "VelocityDemo",
-    "logger_config_path": "/home/mingzegao/ssd/UniTVelo-ATAC/unitvelo/config/config_logger.json",
+    "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/home/mingzegao/ssd/UniTVelo-ATAC/notebooks/data/Gastrulation/erythroid_lineage.h5ad",
+    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/RNA_data.h5ad",
+    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/ATAC_data.h5ad",
+   
+    
     "cluster_name": "celltype",
+    
 
     "system": {
-        "gpu_id": 5,
+        "gpu_id": 1,
         "seed": 42
     },
     
     "preprocessing": {
-        "basis": "umap",
+        "basis": "tsne",
         "min_shared_counts": 20,
         "n_top_genes": 2000,
         "n_pcs": 30,
         "n_neighbors": 30,
         "use_raw": false,
-        "rescale_data": true
+        "rescale_data": true,
+        "window": 10000,
+        "reg_threshold": 1
     },
 
     "base_trainer": {
-        "epochs": 12000,
-        "save_dir": "/home/mingzegao/ssd/UniTVelo-ATAC/trails",
+        "epochs": 2000,
+        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/",
         "verbosity": 2,
         "learning_rate": 1e-2
     },
@@ -43,7 +49,7 @@
 
     "velocity_genes": {
         "r2_adjust": true,
-        "vgenes": "basic"
+        "vgenes": "offset"
     },
 
     "cell_initialization": {

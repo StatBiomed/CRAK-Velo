@@ -42,7 +42,7 @@ class Recover_Paras(Model_Utils):
 
         self.idx = idx
         self.scaling = adata.var['scaling'].values
-        self.default_pars_names = ['gamma', 'beta', 'offset', 'a', 't', 'h', 'intercept']
+        self.default_pars_names = ['gamma', 'beta', 'offset', 'a', 't', 'h', 'intercept','region_weights', 'etta']
         # self.default_pars_names += ['region_weights', 'etta']
 
         self.init_vars()
@@ -164,7 +164,7 @@ class Recover_Paras(Model_Utils):
     def finalize_loss(self, iter, s_r2, u_r2, u_deri_r2):
         if iter < self.config['base_trainer']['epochs'] / 2:
             remain = iter % 400
-            loss = s_r2 if remain < 200 else u_r2+ u_deri_r2
+            loss = s_r2  if remain < 200 else u_r2 + u_deri_r2
         else:
             loss = s_r2 + u_r2 + u_deri_r2
 
@@ -177,8 +177,9 @@ class Recover_Paras(Model_Utils):
 
         error_1 = np.sum(sum(self.u_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
         error_2 = np.sum(sum(self.s_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
-
-        progress_bar.set_description(f'Loss (Total): {(error_1 + error_2):.3f}, (Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}')
+        error_3 = np.sum(sum( self.u_deri_r2, axis=0).numpy()[self.idx]) / np.sum(self.idx)
+                          
+        progress_bar.set_description(f'(Spliced): {error_2:.3f}, (Unspliced): {error_1:.3f}, (Unspliced_derrivative): {error_3:.3f}')
         
         return self.finalize_loss(
             iter,
@@ -245,7 +246,7 @@ class Recover_Paras(Model_Utils):
             if iter == self.config['base_trainer']['epochs'] - 1 or tf.math.reduce_all(stop_cond) == True:
                 self.update_and_store_results(args)
                 break
-
+            
             args_to_optimize = self.get_opt_args(iter, args)
             gradients = tape.gradient(target=obj, sources=args_to_optimize)
 
@@ -254,6 +255,8 @@ class Recover_Paras(Model_Utils):
             processed_grads = [g * convert for g in gradients]
 
             optimizer.apply_gradients(zip(processed_grads, args_to_optimize))
+            args[7].assign(self.B * args[7])
+            args[8].assign(self.B_genes_nr * args[8])
             pre = obj
 
             if iter > 0 and int(iter % 800) == 0:
@@ -283,19 +286,22 @@ class Recover_Paras(Model_Utils):
         self.adata.var['fit_ur2'] = r2_unspliced.numpy()
 
     def save_pars(self, paras):
-        columns = ['a', 'h', 'gamma', 'beta','etta']
+        columns = ['a', 'h', 'gamma', 'beta']
 
         for i, name in enumerate(self.default_pars_names):
+            
             if name == 'region_weights':
                self.adata.varm[f"fit_{name}"] = np.transpose(paras[i])
                self.adata.varm[f"fit_{name}"] = np.exp(self.adata.varm[f"fit_{name}"])
-
+               #self.adata.varm[f"fit_{name}"] = self.B * self.adata.varm[f"fit_{name}"]
             else:
                 self.adata.var[f"fit_{name}"] = np.transpose(np.squeeze(paras[i]))
 
                 if name in columns:
                     self.adata.var[f"fit_{name}"] = np.exp(self.adata.var[f"fit_{name}"])
-                        
+                if name == "etta":
+                    self.adata.var[f"fit_{name}"] = np.exp(self.adata.var[f"fit_{name}"])
+                    #self.adata.varm[f"fit_{name}"] = self.B_genes_nr * self.adata.varm[f"fit_{name}"]
 def lagrange(
     adata,
     M_acc,

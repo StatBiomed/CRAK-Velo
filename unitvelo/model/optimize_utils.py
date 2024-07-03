@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-#import torch
+import torch
 # import gpytorch
 #from skorch.probabilistic import ExactGPRegressor
 
@@ -60,7 +60,7 @@ class Model_Utils():
     ):
         self.adata = adata
         self.Ms, self.Mu = Ms, Mu
-        self.M_acc = M_acc
+        self.M_acc = tf.constant(M_acc, dtype=tf.float32)
         self.B = tf.Variable(B, dtype=tf.float32, trainable=False)
         self.config = config
         self.logger = logger
@@ -215,8 +215,17 @@ class Model_Utils():
     
     def region_dynamics_matrix(self, latent_time_):
         ######order each region according to cell time (order the rows)#####
-        time_order = np.argsort(latent_time_)
-        M_acc_ordered = self.M_acc[time_order, :]
+        
+        
+        time_order = tf.argsort(latent_time_)
+        time_order = tf.cast(time_order, dtype=tf.int32)
+        time_order = tf.expand_dims(time_order, axis=1)
+
+        #print('########',latent_time_.shape)
+        #M_acc_ordered = self.M_acc[time_order, :]
+        M_acc_ordered = tf.gather_nd(self.M_acc,
+                   indices= time_order)
+        
         return M_acc_ordered
 
     def smooth_acc_dynamics(self, latent_time_):
@@ -224,8 +233,8 @@ class Model_Utils():
         ######smooth the accessibility (after ordering) using gaussian process#####
         # M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
         # n_regions = M_acc_oredered.shape[1]
-        M_acc_oredered = tf.convert_to_tensor(M_acc_oredered)
-        
+        # M_acc_oredered = tf.convert_to_tensor(M_acc_oredered)
+        #M_acc_oredered = tf.convert_to_tensor(M_acc_oredered)
         # torch.manual_seed(0)
         # torch.cuda.manual_seed(0)
         # device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -242,6 +251,7 @@ class Model_Utils():
         return M_acc_oredered
     
     def compute_alpha(self, args, latent_time_):
+        
         M_acc_oredered_smoothed = self.smooth_acc_dynamics(latent_time_)
         M_acc_oredered_smoothed = tf.convert_to_tensor(M_acc_oredered_smoothed)
 
@@ -270,18 +280,19 @@ class Model_Utils():
         if self.config["base_trainer"]["loss_mode"] == 2:
             
             if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6], args[7], args[8]]
+                args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6]]
 
             else:
                 args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]]
 
         if self.config["base_trainer"]["loss_mode"] == 1:
-           
-            if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[2], args[3], args[4], args[5], args[7], args[8]] if remain < 200 else [args[0], args[1], args[6]]
+            
 
+            if iter < self.config['base_trainer']['epochs'] / 2:
+                args_to_optimize = [args[2], args[3], args[4], args[5], args[7], args[8]] if remain < 200 else [args[0], args[1], args[6],args[7], args[8]]
+             
             else:
-                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]]
+                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6],args[7], args[8]]
         
         # if self.config['fitting_option']['mode'] == 2:
         #     if iter < self.config['base_trainer']['epochs'] / 2:

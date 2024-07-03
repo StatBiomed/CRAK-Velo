@@ -4,6 +4,7 @@
     
     "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/RNA_data.h5ad",
     "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/ATAC_data.h5ad",
+    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/Human_Cerebral_Cortex_1000.csv",
     "cluster_name": "celltype",
 
     "system": {
@@ -24,11 +25,11 @@
     },
 
     "base_trainer": {
-        "epochs": 10e4,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/Mode_2/",
+        "epochs": 10000,
+        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/Mode_2/",
         "verbosity": 2,
         "learning_rate": 1e-2,
-        "loss_mode" : 2
+        "loss_mode" : 1
     },
 
     "regularization": {

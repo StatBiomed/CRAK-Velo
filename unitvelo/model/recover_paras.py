@@ -172,7 +172,7 @@ class Recover_Paras(Model_Utils):
                 loss = s_r2  if remain < 200 else u_r2 
 
             else:
-                loss = s_r2 + u_r2 + reg_u_derr_loss*u_deri_r2
+                loss = s_r2 + u_r2 +  reg_u_derr_loss*u_deri_r2
         
         if self.config["base_trainer"]["loss_mode"] == 1:
             

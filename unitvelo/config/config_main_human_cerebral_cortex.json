@@ -25,7 +25,7 @@
     },
 
     "base_trainer": {
-        "epochs": 5000,
+        "epochs": 10000,
         "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/Mode_2/",
         "verbosity": 2,
         "learning_rate": 1e-2,

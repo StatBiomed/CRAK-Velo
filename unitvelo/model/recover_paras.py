@@ -177,7 +177,7 @@ class Recover_Paras(Model_Utils):
         if self.config["base_trainer"]["loss_mode"] == 1:
             
                
-            if iter < self.config['base_trainer']['epochs'] * 0.75:
+            if iter < self.config['base_trainer']['epochs'] /2:
                 remain = iter % 400
                 loss = s_r2 + reg_u_derr_loss*u_deri_r2    if remain < 200 else u_r2 + reg_u_derr_loss*u_deri_r2
             

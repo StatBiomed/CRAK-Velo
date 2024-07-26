@@ -59,7 +59,15 @@ class Recover_Paras(Model_Utils):
         Mu = tf.expand_dims(self.Mu, axis=1) # n 1 d
         Ms = tf.expand_dims(self.Ms, axis=1)
 
-        t_cell = self.match_time(Ms, Mu, s_predict, u_predict, x.numpy())
+        u_deri_func = self.get_u_deri(args, x)
+        u_deri_func = tf.expand_dims(u_deri_func, axis=0)
+
+        latent_time_ = self.get_interim_t(self.t_cell, self.adata.var['velocity_genes'].values)
+        latent_time_ = min_max(latent_time_[:, 0]) 
+        u_deri_atac = self.compute_u_deri_atac(args, latent_time_)
+        u_deri_atac = tf.expand_dims(u_deri_atac, axis=1)
+
+        t_cell = self.match_time(Ms, Mu, s_predict, u_predict, u_deri_func, u_deri_atac, x.numpy())
 
         if self.config['fitting_option']['aggregrate_t']:
             t_cell = tf.reshape(t_cell, (-1, 1))
@@ -130,6 +138,8 @@ class Recover_Paras(Model_Utils):
         self.udiff, self.sdiff = self.Mu - self.u_func, self.Ms - self.s_func
         self.u_deri_func = self.get_u_deri(args, t_cell)
         
+        
+       
         latent_time_ = self.get_interim_t(self.t_cell, self.adata.var['velocity_genes'].values)
         latent_time_ = min_max(latent_time_[:, 0]) 
 
@@ -174,14 +184,13 @@ class Recover_Paras(Model_Utils):
             else:
                 loss = s_r2 + u_r2 +  reg_u_derr_loss*u_deri_r2
         
-        if self.config["base_trainer"]["loss_mode"] == 1:
+        if self.config["base_trainer"]["loss_mode"]  == 1:
             
                
-            if iter < self.config['base_trainer']['epochs'] * 0.75:
+            if iter < self.config['base_trainer']['epochs'] /2:
                 remain = iter % 400
                 loss = s_r2 + reg_u_derr_loss*u_deri_r2    if remain < 200 else u_r2 + reg_u_derr_loss*u_deri_r2
             
-           
             else:
                 loss = s_r2 + u_r2 + reg_u_derr_loss*u_deri_r2
             
@@ -229,7 +238,7 @@ class Recover_Paras(Model_Utils):
         s_derivative = self.get_s_deri(args, self.t_cell)
         u_derivative = self.get_u_deri(args, self.t_cell)
         u_derivative_atac = self.compute_u_deri_atac(args, self.t_cell[:, 0])
-    
+        
         self.post_utils(args)
 
         self.adata.var['velocity_genes'] = self.idx

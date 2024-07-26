@@ -141,6 +141,12 @@ class Model_Utils():
         self.u_deri *= self.indices
         return self.u_deri
     
+    def get_alpha_unit(self, args, t_cell):
+        u_dot = self.get_u_deri(args, t_cell)
+        u = self.get_fit_u(args)
+        alpha_unit = u_dot + exp(args[1])*u
+        return alpha_unit
+    
     def get_s_u(self, args, t_cell):
         s = self.get_fit_s(args, t_cell)
         s_deri = self.get_s_deri(args, t_cell)
@@ -164,7 +170,7 @@ class Model_Utils():
         if self.config['fitting_option']['density'] == 'Raw':
             return tf.cast(mean(dis, axis=1), tf.float32)
 
-    def match_time(self, Ms, Mu, s_predict, u_predict, x):
+    def match_time(self, Ms, Mu, s_predict, u_predict, u_deri_func, u_deri_atac, x):
         val = x[1, :] - x[0, :]
         cell_time = np.zeros((Ms.shape[0], Ms.shape[2]))
 
@@ -174,12 +180,17 @@ class Model_Utils():
             if index in self.index_list:
                 sobs = Ms[:, :, index:index + 1] # n * 1 * 1
                 uobs = Mu[:, :, index:index + 1]
+                u_deri_atac_ = u_deri_atac[:, :, index:index + 1]
+
                 spre = s_predict[:, :, index:index + 1] # 1 * 3000 * 1
                 upre = u_predict[:, :, index:index + 1]
+                u_deri_func_ = u_deri_func[:, :, index:index + 1]
 
                 u_r2 = square(uobs - upre) # n * 3000 * 1
                 s_r2 = square(sobs - spre)
-                euclidean = sqrt(u_r2 + s_r2)
+                u_deri_r2 = square(u_deri_atac_ - u_deri_func_ )
+                euclidean = sqrt(u_r2 + s_r2 + u_deri_r2)
+                
                 assign_loc = tf.math.argmin(euclidean, axis=1).numpy() # n * 1
                 
                 if self.config['fitting_option']['reorder_cell'] == 'Soft_Reorder':
@@ -272,6 +283,8 @@ class Model_Utils():
          alpha = self.compute_alpha(args, t_cell)
          u_deri_atac = alpha - exp(args[1]) * self.Mu
          return u_deri_atac
+    
+    
 
     def get_opt_args(self, iter, args):
         remain = iter % 400

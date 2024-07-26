@@ -7,7 +7,10 @@ import tensorflow as tf
 from sklearn import linear_model
 from sklearn.metrics import r2_score
 
-
+def min_max_normalize(signal, min_val=0, max_val=1):
+    signal_min = np.min(signal,axis=0)
+    signal_max = np.max(signal,axis=0)
+    return (signal - signal_min) / (signal_max - signal_min) * (max_val - min_val) + min_val
 class Velocity:
     def __init__(
         self,
@@ -30,7 +33,7 @@ class Velocity:
         self.Ms, self.Mu = make_dense(self.Ms), make_dense(self.Mu)
 
         # self.Matac = self.adata_atac.X # (sparse matrix) I am not sure we need this one
-        self.M_acc = self.adata_atac.obsm["cisTopic"]
+        self.M_acc = min_max_normalize(self.adata_atac.obsm["cisTopic"])
      
         self.min_r2 = min_r2
         self.min_ratio = min_ratio

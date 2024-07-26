@@ -1,7 +1,7 @@
 import scvelo as scv
 import scanpy as sc
 import pandas as pd
-#import pybedtools
+# import pybedtools
 import numpy as np
 
 def init_config(config=None):
@@ -78,7 +78,7 @@ def init_adata(config, logger, normalize=True):
 #         "chrom_gene", "start_gene", "end_gene", "gene_name", "gene_number", " "
 #     ]
 #     df_rg_intersection = df_rg_intersection.to_dataframe(names=col_names).iloc[:, :-1]
-
+#     print(df_rg_intersection.head())
 #     df_rg_intersection["distance"] = np.abs(df_rg_intersection["start_gene"] - df_rg_intersection["start_region"])
     
 #     condition = df_rg_intersection["distance"] <= w

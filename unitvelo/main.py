@@ -14,17 +14,17 @@ def run_model(config):
     logger.info('Inferring RNA velocity with scATAC-seq data')
     
     config = init_config(config=config)
-    adata , adata_atac, df_rg_intersection = init_adata(config, logger, normalize=True) 
+    adata , adata_atac, df_rg_intersection = init_adata(config, logger, normalize=True) #
     
-    #df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
-    #df_rg_intersection.to_csv('/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/10X_mouse_brain_100000.csv',sep='\t')
+    # df_rg_intersection = genes_regions_interesctions(adata, adata_atac, config)
+    # df_rg_intersection.to_csv('/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/HCC_400_regions_10000.csv',sep='\t')
     B, adata_atac = gene_regions_binary_matrix(config, adata, adata_atac, df_rg_intersection, logger)
     logger.info(f"adata shape: {adata.shape} adata_atac shape: {adata_atac.shape} cisTopic shape: {adata_atac.obsm['cisTopic'].shape} binary matrix shape: {B.shape}\n")
     
     #np.savetxt('/data/nelkazwi/RNA_velo/Unitvelo_atac/test_multivelo_data/B.csv', B, delimiter='\t')
-    scv.settings.presenter_view = True
-    scv.settings.verbosity = 0
-    scv.settings.file_format_figs = 'png'
+    # scv.settings.presenter_view = True
+    # scv.settings.verbosity = 0
+    # scv.settings.file_format_figs = 'png'
 
     model = Velocity(adata, adata_atac, B, logger, config=config) 
     model.get_velo_genes()

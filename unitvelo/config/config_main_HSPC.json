@@ -2,9 +2,9 @@
     "name": "VelocityDemo",
     "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/RNA_data.h5ad",
-    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/ATAC_data.h5ad",
-    "df_rg_intersection_path": "/data/nelkazwi/code/UniTVelo-ATAC/df_regions_genes/Human_Cerebral_Cortex_10000.csv",
+    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/RNA_data.h5ad",
+    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/ATAC_data_filtered_800.h5ad",
+    "df_rg_intersection_path": "/data/nelkazwi/code/UniTVelo-ATAC/df_regions_genes/HSPC_10000.csv",
     "cluster_name": "celltype",
 
     "system": {
@@ -26,7 +26,7 @@
 
     "base_trainer": {
         "epochs": 10,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test/",
+        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/Mode_2/",
         "verbosity": 2,
         "learning_rate": 1e-2,
         "loss_mode" : 1

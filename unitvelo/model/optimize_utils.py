@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import torch
+# import torch
 # import gpytorch
 #from skorch.probabilistic import ExactGPRegressor
 

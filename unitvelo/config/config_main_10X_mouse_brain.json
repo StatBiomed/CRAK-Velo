@@ -2,8 +2,8 @@
     "name": "VelocityDemo",
     "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/RNA_data.h5ad",
-    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/ATAC_data.h5ad",
+    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/RNA_data_mv_cells.h5ad",
+    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/ATAC_data_mv_cells.h5ad",
     "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/10X_mouse_brain_1000.csv",
     
     "cluster_name": "celltype",

@@ -1,4 +1,4 @@
-from .preprocessing import init_config, init_adata, gene_regions_binary_matrix#, genes_regions_interesctions
+from .preprocessing import init_config, init_adata, gene_regions_binary_matrix, genes_regions_interesctions
 
 from .recover_paras import lagrange
 

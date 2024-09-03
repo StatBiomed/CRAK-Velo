@@ -2,8 +2,8 @@
     "name": "VelocityDemo",
     "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/RNA_data.h5ad",
-    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/ATAC_data.h5ad",
+    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/RNA_data_mv_cells.h5ad",
+    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/ATAC_data_mv_cells.h5ad",
     "df_rg_intersection_path": "/data/nelkazwi/code/UniTVelo-ATAC/df_regions_genes/Human_Cerebral_Cortex_10000.csv",
     "cluster_name": "celltype",
 
@@ -20,18 +20,13 @@
         "n_neighbors": 30,
         "use_raw": false,
         "rescale_data": true,
-        "window": 10e4,
+        "window": 10e5,
         "reg_threshold": 1
     },
 
     "base_trainer": {
-<<<<<<< HEAD
         "epochs": 10,
         "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test/",
-=======
-        "epochs": 10000,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/Human_Cerebral_Cortex/Mode_2/",
->>>>>>> Nour899/Integrating_ATAC_no_pybedtool
         "verbosity": 2,
         "learning_rate": 1e-2,
         "loss_mode" : 1

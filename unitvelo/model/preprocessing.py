@@ -1,7 +1,7 @@
 import scvelo as scv
 import scanpy as sc
 import pandas as pd
-# import pybedtools
+import pybedtools
 import numpy as np
 
 def init_config(config=None):
@@ -31,9 +31,9 @@ def init_adata(config, logger, normalize=True):
     if normalize:
         scv.pp.filter_and_normalize(
             adata, 
-            min_shared_counts=config['preprocessing']['min_shared_counts'], 
+            min_shared_counts=config['preprocessing']['min_shared_counts'],
             n_top_genes=config['preprocessing']['n_top_genes']
-        )
+        )# 
 
         logger.info(f"Extracted {adata.var[adata.var['highly_variable'] == True].shape[0]} highly variable genes")
         logger.info(f"Computing moments for {len(adata.var)} genes with n_neighbors: {config['preprocessing']['n_neighbors']} and n_pcs: {config['preprocessing']['n_pcs']}\n")
@@ -45,48 +45,48 @@ def init_adata(config, logger, normalize=True):
     else:
         scv.pp.neighbors(adata)
 
-    return adata, adata_atac, df_rg_intersection
+    return adata, adata_atac#, df_rg_intersection
 
-# def genes_regions_interesctions(
-#     adata, 
-#     adata_atac, 
-#     config, 
-#     col=['chrom', 'chromStart', 'chromEnd'],
-#     ):
-#     ngenes = adata.X.shape[1]
-#     nregions = adata_atac.X.shape[1]
+def genes_regions_interesctions(
+    adata, 
+    adata_atac, 
+    config, 
+    col=['chrom', 'chromStart', 'chromEnd'],
+    ):
+    ngenes = adata.X.shape[1]
+    nregions = adata_atac.X.shape[1]
 
     
-#     w = config['preprocessing']['window']
+    w = config['preprocessing']['window']
     
-#     #gene_coor = adata.var.sort_values(col[0])[[col[0], col[1], col[2]]]
-#     gene_coor = adata.var[[col[0], col[1], col[2]]]
-#     gene_coor["gene_name"] = gene_coor.index
-#     gene_coor["gene_number"] = np.arange(0, ngenes)
+    #gene_coor = adata.var.sort_values(col[0])[[col[0], col[1], col[2]]]
+    gene_coor = adata.var[[col[0], col[1], col[2]]]
+    gene_coor["gene_name"] = gene_coor.index
+    gene_coor["gene_number"] = np.arange(0, ngenes)
 
-#     #region_coor = adata_atac.var.sort_values(col[0])[[col[0], col[1], col[2]]]
-#     region_coor = adata_atac.var[[col[0], col[1], col[2]]]
-#     region_coor["region_number"] = np.arange(0, nregions)
-#     adata_atac.var['region_number'] = np.arange(0, nregions) 
+    #region_coor = adata_atac.var.sort_values(col[0])[[col[0], col[1], col[2]]]
+    region_coor = adata_atac.var[[col[0], col[1], col[2]]]
+    region_coor["region_number"] = np.arange(0, nregions)
+    adata_atac.var['region_number'] = np.arange(0, nregions) 
     
-#     a = pybedtools.BedTool.from_dataframe(region_coor)
-#     b = pybedtools.BedTool.from_dataframe(gene_coor)
-#     df_rg_intersection = a.window(b, w=w).overlap(cols=[2, 3, 6, 7])
+    a = pybedtools.BedTool.from_dataframe(region_coor)
+    b = pybedtools.BedTool.from_dataframe(gene_coor)
+    df_rg_intersection = a.window(b, w=w).overlap(cols=[2, 3, 6, 7])
 
-#     col_names = [
-#         "chrom_region", "start_region", "end_region", "region_number", 
-#         "chrom_gene", "start_gene", "end_gene", "gene_name", "gene_number", " "
-#     ]
-#     df_rg_intersection = df_rg_intersection.to_dataframe(names=col_names).iloc[:, :-1]
-#     print(df_rg_intersection.head())
-#     df_rg_intersection["distance"] = np.abs(df_rg_intersection["start_gene"] - df_rg_intersection["start_region"])
+    col_names = [
+        "chrom_region", "start_region", "end_region", "region_number", 
+        "chrom_gene", "start_gene", "end_gene", "gene_name", "gene_number", " "
+    ]
+    df_rg_intersection = df_rg_intersection.to_dataframe(names=col_names).iloc[:, :-1]
+    print(df_rg_intersection.head())
+    df_rg_intersection["distance"] = np.abs(df_rg_intersection["start_gene"] - df_rg_intersection["start_region"])
     
-#     condition = df_rg_intersection["distance"] <= w
+    condition = df_rg_intersection["distance"] <= w
     
 
-#     df_rg_intersection = df_rg_intersection[condition]
+    df_rg_intersection = df_rg_intersection[condition]
 
-#     return df_rg_intersection
+    return df_rg_intersection
 
 def gene_regions_binary_matrix(config, adata, adata_atac, df_rg_intersection, logger):
     ngenes = adata.X.shape[1]

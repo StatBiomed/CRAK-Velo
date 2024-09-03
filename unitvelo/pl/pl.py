@@ -3,6 +3,12 @@ import scvelo as scv
 import seaborn as sns
 import numpy as np
 import os
+import matplotlib.gridspec as gridspec
+
+def get_scatter_markers(n):
+    markers = ['o', 's', 'D', '^', 'v', 'p', '*', '+', 'x', '|', '_']
+    return markers[:n]  # Return a list of markers, truncating if necessary
+
 
 def rbf(x, height, sigma, tau, offset_rbf):
     return height * np.exp(-sigma * (x - tau) * (x - tau)) + offset_rbf
@@ -138,3 +144,130 @@ def plot_reverse_tran_scatter(adata):
     plt.title(f'$R^2$ comparison of RBF and Quadratic model')
     plt.show()
     plt.close()
+
+
+def gene_weights_plots(genes, adata, adata_atac):
+    c_ = np.where(np.log(adata.varm["fit_region_weights"])!=0)[1]
+    r_ = np.where(np.log(adata.varm["fit_region_weights"])!=0)[0]
+
+    for gene in genes:
+        gene_name = gene
+        
+        adata.var[adata.var_names == gene_name]
+        gene_number = np.where(adata.var_names == gene_name)[0][0]
+        r_g = adata.varm["fit_region_weights"][gene_number,c_[r_ == gene_number]]
+        adata_atac.var["chromStart"][c_[r_ == gene_number]]
+            
+        
+        distance_regions = adata_atac.var["chromStart"][c_[r_ == gene_number]].values
+        gene_end = adata.var[adata.var_names == gene_name]["chromEnd"].values[0]
+        gene_start = adata.var[adata.var_names == gene_name]["chromStart"].values[0]
+
+        plt.figure(figsize=(4, 3))
+        plt.axvline(x=0, ymin=0, ymax=10,color='green', linestyle='dotted')
+        plt.axvline(x=gene_end - gene_start, ymin=0, ymax=10,color='red', linestyle='dotted')
+        
+        # plt.xlim([-10000,20000])
+        plt.xlabel('distance')
+        plt.ylabel('$w^{r}$')
+        plt.title(gene)
+        plot = sns.scatterplot(x= distance_regions - gene_start, y=r_g )
+        
+       
+
+
+def get_scatter_markers(n):
+    # Available marker styles in matplotlib
+    markers = ['o', 's', '^', 'D', 'v', '>', '<', 'p', '*', 'h', 'H', '+', 'x', 'd', '|', '_']
+    
+    # If n is larger than the number of available markers, repeat the markers
+    return markers * (n // len(markers)) + markers[:n % len(markers)]
+
+
+def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
+                        average_intervals_unspliced, B,
+                        save_fig = False, path = " "):
+    w = np.multiply(adata.varm["fit_region_weights"],B.T )
+    c_ = np.where(w!=0)[1]
+    r_ = np.where(w!=0)[0]
+
+  
+    adata.var[adata.var_names == gene_name]
+    gene_number = np.where(adata.var_names == gene_name)[0][0]
+    r_g = adata.varm["fit_region_weights"][gene_number,c_[r_ == gene_number]]
+    adata_atac.var["chromStart"][c_[r_ == gene_number]]
+        
+    
+    distance_regions = adata_atac.var["chromStart"][c_[r_ == gene_number]].values
+    gene_end = adata.var[adata.var_names == gene_name]["chromEnd"].values[0]
+    gene_start = adata.var[adata.var_names == gene_name]["chromStart"].values[0]
+    
+    #plt.figure(figsize=(7, 4))
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    colors = plt.get_cmap('Set2').colors
+    markers_list = get_scatter_markers(time.shape[0])
+    
+    for i in np.arange(0,time.shape[0]):
+        
+        plot = sns.scatterplot(y=average_intervals[i], x =time[i] ,alpha=0.5,
+                               label ="d = "+ str((distance_regions - gene_start)[i]), 
+                                color = colors[i], marker = markers_list[i], ax = ax1 )
+
+
+       
+
+    plt.ylabel(f'$c_r^g$')
+    plt.xlabel("time")
+    
+    plot.spines['top'].set_visible(False)
+    #plt.legend(loc='best', frameon=False)
+    plt.title(gene_name)
+    
+    ax2 = ax1.twinx()
+    plot = sns.lineplot(y=average_intervals_unspliced, 
+                        x =time[i] ,alpha=0.5, marker='o',label = 'u', ax = ax2
+                        ,legend= False)
+    for line in plot.get_lines():
+        line.set_linestyle('--') 
+
+    plot.spines['top'].set_visible(False)
+    plt.ylabel('u')
+
+    lines, labels = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+
+    ax1.legend(lines+lines2 , labels+labels2 , loc='best')
+
+    if save_fig:
+        plt.savefig(path+str(gene_name)+'_dynamic_plot.png', dpi=300)
+        plt.savefig(path+str(gene_name)+'_dynamic_plot.pdf', dpi=300)
+
+
+    plt.figure(figsize=(4, 2))
+
+    plt.axvline(x=0, ymin=0, ymax=10,color='green', linestyle='dotted', alpha = 0.5, label = 'gene begin')
+    plt.axvline(x=gene_end - gene_start, ymin=0, ymax=10,color='blue',
+                 linestyle='dotted', alpha = 0.5, label = 'gene end')
+    
+    for i in np.arange(0,time.shape[0]):
+      
+      plot = sns.scatterplot( x= [(distance_regions - gene_start)[i]],
+                         y=[r_g[i]], color = colors[i], marker = markers_list[i],alpha=0.5,)
+    plt.ylabel(f'$w_r^g$')
+    plt.xlabel('distance')
+
+    #plt.xlim([-10000,10000])
+    
+    plt.legend(loc='best',bbox_to_anchor=(1, 1), frameon=False)
+    plot.spines['top'].set_visible(False)
+    plot.spines['right'].set_visible(False)
+    plt.tight_layout() 
+
+    if save_fig:
+        plt.savefig(path+str(gene_name)+'_regions_weights.png', dpi=300)
+        plt.savefig(path+str(gene_name)+'_regions_weights.pdf', dpi=300)
+     
+    plt.show()
+    
+   

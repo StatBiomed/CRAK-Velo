@@ -58,8 +58,7 @@ class ConfigParser:
         if args.window is not None:
              config['preprocessing']['window'] = args.window
 
-        if args.loss_mode is not None:
-             config["base_trainer"]["loss_mode"] = args.loss_mode
+        
         return cls(config, run_id)    
 
     def init_obj(self, name, module, *args, **kwargs):

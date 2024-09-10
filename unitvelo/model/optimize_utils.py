@@ -22,29 +22,6 @@ def col_minmax(matrix, gene_id=None):
     return (matrix - np.min(matrix, axis=0)) \
         / (np.max(matrix, axis=0) - np.min(matrix, axis=0))
 
-# class RbfModule(gpytorch.models.ExactGP):
-#     def __init__(self, likelihood, noise_init=None):
-        
-#         super().__init__(train_inputs=None, train_targets=None, likelihood=likelihood)
-#         self.mean_module = gpytorch.means.ConstantMean()
-#         self.covar_module = gpytorch.kernels.RBFKernel()
-
-#     def forward(self, x):
-#         mean_x = self.mean_module(x)
-#         covar_x = self.covar_module(x)
-#         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
-
-# def GPR(device, max_epochs=1, lr=0.00001 ):
-#     gpr = ExactGPRegressor(
-#         RbfModule,
-#         optimizer=torch.optim.Adam,
-#         lr=lr,
-#         max_epochs=max_epochs,
-#         device=device,
-#         batch_size=-1,
-#         verbose=False
-#         )
-#     return gpr
 
 class Model_Utils():
     def __init__(
@@ -96,26 +73,11 @@ class Model_Utils():
         self.log_etta = tf.Variable(tf.zeros((1, ngenes), dtype=tf.float32) , name='log_etta')
         self.log_etta.assign(tf.multiply(self.B_genes_nr, self.log_etta))
 
-    #def velo_gene_regions_binary_matrix(self, B):
-        ########## This function is written just un case we wanted to take regions associated with velocity genes#########
-         #self.B_velo_genes = B[:, self.velocity_genes]
-         #kept_regions = B_velo_genes.sum(axis=1)!=0
-         #self.adata_atac.var["velo_gene_region"] = kept_regions
-         #B_velo_genes = B_velo_genes[kept_regions,:]
-         
-         #return B_velo_genes, kept_regions    
-
-    #def cell_velo_regions_matrix(self, kept_regions):
-         #M_velo_acc = self.M_acc[kept_regions,:]
-         # return M_velo_acc
-
     def velo_regions_matrices(self):
          self.B_tensor = tf.convert_to_tensor(self.B)
          self.M_velo_acc = self.M_acc
 
-         #######If we ant velocity regions######
-         ####self.B, kept_regions = self.velo_gene_regions_binary_matrix(B)
-         ####self.M_velo_acc = self.cell_velo_regions_matrix(kept_regions)
+      
     
     def init_weights(self):
         nonzero_s, nonzero_u = self.Ms > 0, self.Mu > 0
@@ -231,43 +193,17 @@ class Model_Utils():
         time_order = tf.argsort(latent_time_)
         time_order = tf.cast(time_order, dtype=tf.int32)
         time_order = tf.expand_dims(time_order, axis=1)
-
-        #print('########',latent_time_.shape)
-        #M_acc_ordered = self.M_acc[time_order, :]
         M_acc_ordered = tf.gather_nd(self.M_acc,
                    indices= time_order)
         
         return M_acc_ordered
-
-    def smooth_acc_dynamics(self, latent_time_):
-        M_acc_oredered = self.region_dynamics_matrix(latent_time_)
-        ######smooth the accessibility (after ordering) using gaussian process#####
-        # M_acc_oredered_smoothed = np.empty_like(M_acc_oredered) 
-        # n_regions = M_acc_oredered.shape[1]
-        # M_acc_oredered = tf.convert_to_tensor(M_acc_oredered)
-        #M_acc_oredered = tf.convert_to_tensor(M_acc_oredered)
-        # torch.manual_seed(0)
-        # torch.cuda.manual_seed(0)
-        # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        
-        # gpr = GPR(device, max_epochs = 1, lr = 0.00001 )
-        # time = torch.tensor(latent_time_.numpy())
-        # print(n_regions)
-        # for i in np.arange(0, n_regions):
-        #     print(i)
-        #     gpr.fit(time, M_acc_oredered[:,i])
-        #     M_acc_oredered_smoothed[:,i] = gpr.predict(time)
-            
-        # return torch.tensor(M_acc_oredered_smoothed)
-        return M_acc_oredered
     
     def compute_alpha(self, args, latent_time_):
         
-        M_acc_oredered_smoothed = self.smooth_acc_dynamics(latent_time_)
+        M_acc_oredered_smoothed = self. region_dynamics_matrix(latent_time_)
         M_acc_oredered_smoothed = tf.convert_to_tensor(M_acc_oredered_smoothed)
 
-        #self.log_region_weights.assign(self.B * args[7])
-        #self.log_etta.assign(self.B_genes_nr * args[8])
+       
         log_region_weights = args[7]
         log_etta = args[8]
         
@@ -289,30 +225,24 @@ class Model_Utils():
     def get_opt_args(self, iter, args):
         remain = iter % 400
         
-        #if self.config['fitting_option']['mode'] == 1:
-        if self.config["base_trainer"]["loss_mode"] == 2:
+        if self.config['fitting_option']['mode'] == 1:
             
-            if iter < self.config['base_trainer']['epochs'] / 2:
-                args_to_optimize = [args[2], args[3], args[4], args[5]] if remain < 200 else [args[0], args[1], args[6]]
-
-            else:
-                args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]]
-
-        if self.config["base_trainer"]["loss_mode"] == 1:
-            
-
             if iter < self.config['base_trainer']['epochs'] / 2:
                 args_to_optimize = [args[2], args[3], args[4], args[5], args[7], args[8]] if remain < 200 else [args[0], args[1], args[6],args[7], args[8]]
              
             else:
                 args_to_optimize = [args[0], args[1], args[2], args[3], args[4], args[5], args[6],args[7], args[8]]
+
         
-        # if self.config['fitting_option']['mode'] == 2:
-        #     if iter < self.config['base_trainer']['epochs'] / 2:
-        #         args_to_optimize = [args[3], args[5]] if remain < 200 else [args[0], args[1]]
-                    
-        #     else:
-        #         args_to_optimize = [args[0], args[1], args[3], args[5], args[7], args[8]]
+        if self.config['fitting_option']['mode'] == 2:
+            
+            if iter < self.config['base_trainer']['epochs'] / 2:
+                args_to_optimize = [args[3], args[5], args[7], args[8]] if remain < 200 else [args[0], args[1], args[7], args[8]]
+             
+            else:
+                args_to_optimize = [args[0], args[1], args[3], args[5], args[7], args[8]]
+
+            
         
         return args_to_optimize
     

@@ -28,8 +28,7 @@
         "epochs": 10,
         "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/test/",
         "verbosity": 2,
-        "learning_rate": 1e-2,
-        "loss_mode" : 1
+        "learning_rate": 1e-2
     },
 
     "regularization": {

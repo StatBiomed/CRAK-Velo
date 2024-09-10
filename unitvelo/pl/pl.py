@@ -3,7 +3,8 @@ import scvelo as scv
 import seaborn as sns
 import numpy as np
 import os
-import matplotlib.gridspec as gridspec
+from scipy import sparse
+import pandas as pd
 
 def get_scatter_markers(n):
     markers = ['o', 's', 'D', '^', 'v', 'p', '*', '+', 'x', '|', '_']
@@ -184,9 +185,10 @@ def get_scatter_markers(n):
     return markers * (n // len(markers)) + markers[:n % len(markers)]
 
 
-def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
+def region_kinetic_plot(adata,adata_atac,gene_name, time, average_intervals,
                         average_intervals_unspliced, B,
                         save_fig = False, path = " "):
+    
     w = np.multiply(adata.varm["fit_region_weights"],B.T )
     c_ = np.where(w!=0)[1]
     r_ = np.where(w!=0)[0]
@@ -202,7 +204,7 @@ def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
     gene_end = adata.var[adata.var_names == gene_name]["chromEnd"].values[0]
     gene_start = adata.var[adata.var_names == gene_name]["chromStart"].values[0]
     
-    #plt.figure(figsize=(7, 4))
+    
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     colors = plt.get_cmap('Set2').colors
@@ -210,7 +212,7 @@ def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
     
     for i in np.arange(0,time.shape[0]):
         
-        plot = sns.scatterplot(y=average_intervals[i], x =time[i] ,alpha=0.5,
+        plot = sns.scatterplot(y=average_intervals[i], x =time[i] ,alpha=1,
                                label ="d = "+ str((distance_regions - gene_start)[i]), 
                                 color = colors[i], marker = markers_list[i], ax = ax1 )
 
@@ -221,12 +223,12 @@ def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
     plt.xlabel("time")
     
     plot.spines['top'].set_visible(False)
-    #plt.legend(loc='best', frameon=False)
+   
     plt.title(gene_name)
     
     ax2 = ax1.twinx()
     plot = sns.lineplot(y=average_intervals_unspliced, 
-                        x =time[i] ,alpha=0.5, marker='o',label = 'u', ax = ax2
+                        x =time[i] ,alpha=1, marker='o',label = 'u', ax = ax2
                         ,legend= False)
     for line in plot.get_lines():
         line.set_linestyle('--') 
@@ -237,27 +239,29 @@ def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
     lines, labels = ax1.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
 
-    ax1.legend(lines+lines2 , labels+labels2 , loc='best')
+    ax1.legend(lines+lines2 , labels+labels2 , loc='best', bbox_to_anchor=(1.3, 1))
+
+    plt.tight_layout() 
 
     if save_fig:
-        plt.savefig(path+str(gene_name)+'_dynamic_plot.png', dpi=300)
-        plt.savefig(path+str(gene_name)+'_dynamic_plot.pdf', dpi=300)
+        plt.savefig(path+str(gene_name)+'_kinetic_plot.png', dpi=300)
+        plt.savefig(path+str(gene_name)+'_kinetic_plot.pdf', dpi=300)
 
 
     plt.figure(figsize=(4, 2))
 
-    plt.axvline(x=0, ymin=0, ymax=10,color='green', linestyle='dotted', alpha = 0.5, label = 'gene begin')
+    plt.axvline(x=0, ymin=0, ymax=10,color='green', linestyle='dotted', alpha = 1, label = 'gene begin')
     plt.axvline(x=gene_end - gene_start, ymin=0, ymax=10,color='blue',
                  linestyle='dotted', alpha = 0.5, label = 'gene end')
     
     for i in np.arange(0,time.shape[0]):
       
       plot = sns.scatterplot( x= [(distance_regions - gene_start)[i]],
-                         y=[r_g[i]], color = colors[i], marker = markers_list[i],alpha=0.5,)
+                         y=[r_g[i]], color = colors[i], marker = markers_list[i],alpha=1)
     plt.ylabel(f'$w_r^g$')
     plt.xlabel('distance')
 
-    #plt.xlim([-10000,10000])
+    plt.xlim([-10000,10000])
     
     plt.legend(loc='best',bbox_to_anchor=(1, 1), frameon=False)
     plot.spines['top'].set_visible(False)
@@ -270,4 +274,174 @@ def region_dynamic_plot(adata,adata_atac,gene_name, time, average_intervals,
      
     plt.show()
     
+
+def scatter_plot(adata,
+                 genes,
+                 by='us',
+                 color_by="celltype",
+                 n_cols=5,
+                 axis_on=True,
+                 frame_on=True,
+                 
+                 title_more_info=False,
+                 
+                 downsample=1,
+                 figsize=None,
+                 pointsize=2,
+                
+                 cmap='coolwarm',
+                 view_3d_elev=None,
+                 view_3d_azim=None,
+                 full_name=False
+                 ):
+   
+        from pandas.api.types import is_numeric_dtype, is_categorical_dtype
+        if by not in ['us', 'cu']:
+            raise ValueError("'by' argument must be one of ['us', 'cu']")
+       
+        elif by == 'us' and color_by == 'c':
+            types = None
+        elif color_by in adata.obs and is_numeric_dtype(adata.obs[color_by]):
+            types = None
+            colors = adata.obs[color_by].values
+        elif color_by in adata.obs and is_categorical_dtype(adata.obs[color_by]) \
+                and color_by+'_colors' in adata.uns.keys():
+            types = adata.obs[color_by].cat.categories
+            colors = adata.uns[f'{color_by}_colors']
+        else:
+            raise ValueError('Currently, color key must be a single string of '
+                            'either numerical or categorical available in adata'
+                            ' obs, and the colors of categories can be found in'
+                            ' adata uns.')
+
+       
+       
+        downsample = np.clip(int(downsample), 1, 10)
+        genes = np.array(genes)
+        missing_genes = genes[~np.isin(genes, adata.var_names)]
+        if len(missing_genes) > 0:
+            print(f'{missing_genes} not found')
+        genes = genes[np.isin(genes, adata.var_names)]
+        gn = len(genes)
+        if gn == 0:
+            return
+        if gn < n_cols:
+            n_cols = gn
+        
+        fig, axs = plt.subplots(-(-gn // n_cols), n_cols, squeeze=False,
+                                    figsize=(2.7*n_cols, 2.4*(-(-gn // n_cols)))
+                                    if figsize is None else figsize)
+        fig.patch.set_facecolor('white')
+        count = 0
+        for gene in genes:
+            u = adata[:, gene].layers['Mu'].copy() if 'Mu' in adata.layers \
+                else adata[:, gene].layers['unspliced'].copy()
+            s = adata[:, gene].layers['Ms'].copy() if 'Ms' in adata.layers \
+                else adata[:, gene].layers['spliced'].copy()
+            u = u.A if sparse.issparse(u) else u
+            s = s.A if sparse.issparse(s) else s
+            u, s = np.ravel(u), np.ravel(s)
+            
+            if 'ATAC' in adata.layers.keys():
+                c = adata[:, gene].layers['ATAC'].copy()
+                c = c.A if sparse.issparse(c) else c
+                c = np.ravel(c)
+            elif 'Mc' in adata.layers.keys():
+                c = adata[:, gene].layers['Mc'].copy()
+                c = c.A if sparse.issparse(c) else c
+                c = np.ravel(c)
+
+            
+
+            row = count // n_cols
+            col = count % n_cols
+            ax = axs[row, col]
+            if types is not None:
+                for i in range(len(types)):
+                    
+                    filt = adata.obs[color_by] == types[i]
+                    filt = np.ravel(filt)
+                    if by == 'us':
+                       
+                            ax.scatter(s[filt][::downsample],
+                                    u[filt][::downsample], s=pointsize,
+                                    c=colors[i], alpha=0.7)
+                    elif by == 'cu':
+                      
+                       
+                            ax.scatter(u[filt][::downsample],
+                                    c[filt][::downsample], s=pointsize,
+                                    c=colors[i], alpha=0.7)
+                    else:
+                        
+                            ax.scatter(s[filt][::downsample],
+                                    u[filt][::downsample],
+                                    c[filt][::downsample], s=pointsize,
+                                    c=colors[i], alpha=0.7)
+            elif color_by == 'c':
+                if 'velo_s_params' in adata.uns.keys() and \
+                        'outlier' in adata.uns['velo_s_params']:
+                    outlier = adata.uns['velo_s_params']['outlier']
+                else:
+                    outlier = 99.8
+                non_zero = (u > 0) & (s > 0) & (c > 0)
+                non_outlier = u < np.percentile(u, outlier)
+                non_outlier &= s < np.percentile(s, outlier)
+                non_outlier &= c < np.percentile(c, outlier)
+                c -= np.min(c)
+                c /= np.max(c)
+                
+                ax.scatter(s[non_zero & non_outlier][::downsample],
+                            u[non_zero & non_outlier][::downsample],
+                            s=pointsize,
+                            c=np.log1p(c[non_zero & non_outlier][::downsample]),
+                            alpha=0.8, cmap=cmap)
+            else:
+                if by == 'us':
+                   
+                        ax.scatter(s[::downsample], u[::downsample], s=pointsize,
+                                c=colors[::downsample], alpha=0.7, cmap=cmap)
+                elif by == 'cu':
+                    
+                        ax.scatter(u[::downsample], c[::downsample], s=pointsize,
+                                c=colors[::downsample], alpha=0.7, cmap=cmap)
+                
+
+            
+
+            
+            title = gene
+            if title_more_info:
+                if 'fit_model' in adata.var:
+                    title += f" M{int(adata[:,gene].var['fit_model'].values[0])}"
+                if 'fit_direction' in adata.var:
+                    title += f" {adata[:,gene].var['fit_direction'].values[0]}"
+                if 'fit_likelihood' in adata.var \
+                        and not np.all(adata.var['fit_likelihood'].values == -1):
+                    title += " "
+                    f"{adata[:,gene].var['fit_likelihood'].values[0]:.3g}"
+            ax.set_title(f'{title}', fontsize=11)
+            if by == 'us':
+                ax.set_xlabel('spliced' if full_name else 's')
+                ax.set_ylabel('unspliced' if full_name else 'u')
+            elif by == 'cu':
+                ax.set_xlabel('unspliced' if full_name else 'u')
+                ax.set_ylabel('chromatin' if full_name else 'c')
+       
+            if by in ['us', 'cu']:
+                if not axis_on:
+                    ax.xaxis.set_ticks_position('none')
+                    ax.yaxis.set_ticks_position('none')
+                    ax.get_xaxis().set_visible(False)
+                    ax.get_yaxis().set_visible(False)
+                if not frame_on:
+                    ax.xaxis.set_ticks_position('none')
+                    ax.yaxis.set_ticks_position('none')
+                    ax.set_frame_on(False)
+            
+            count += 1
+        for i in range(col+1, n_cols):
+            fig.delaxes(axs[row, i])
+        fig.tight_layout()
+
    

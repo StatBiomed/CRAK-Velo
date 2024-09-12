@@ -1,11 +1,10 @@
 {
     "name": "VelocityDemo",
-    "logger_config_path": "./CRAK-Velo/crak-velo/config/config_logger.json",
+    "logger_config_path": "../../CRAK-Velo/crak-velo/config/config_logger.json",
 
-    "adata_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/prepro_adata/adata_rna_prepro.h5ad",
-    "adata_atac_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/postpro_atac_adata/adata_atac_postpro.h5ad",
+    "adata_path": "../../CRAK-Velo/notebooks/data/HSPC_dataset/prepro_adata/adata_rna_prepro.h5ad",
+    "adata_atac_path": "../../CRAK-Velo/notebooks/data/HSPC_dataset/postpro_atac_adata/adata_atac_postpro.h5ad",
     
-
     "cluster_name": "celltype",
 
     "system": {

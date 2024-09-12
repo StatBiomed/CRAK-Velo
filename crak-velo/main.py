@@ -15,6 +15,7 @@ def run_model(config):
     adata , adata_atac = init_adata(config, logger, normalize=True) 
     
     df_rg_intersection = genes_regions_interesctions(adata,adata_atac, config)
+    print(df_rg_intersection.shape)
     B, adata_atac = gene_regions_binary_matrix(config, adata, adata_atac, df_rg_intersection, logger)
     
     logger.info(f"adata shape: {adata.shape} adata_atac shape: {adata_atac.shape} cisTopic shape: {adata_atac.obsm['cisTopic'].shape} binary matrix shape: {B.shape}\n")
@@ -31,9 +32,9 @@ def run_model(config):
     
 
     
-    adata.write(os.path.join(config.save_dir, f'model_last.h5ad'))
-    adata_atac.write(os.path.join(config.save_dir, f'model_last_atac.h5ad'))
-    np.savetxt(os.path.join(config.save_dir, f'B_mouse_brain.txt'), B, delimiter=',')
+    adata.write(os.path.join(config.save_dir, f'adata_rna_fit.h5ad'))
+    adata_atac.write(os.path.join(config.save_dir, f'adata_atac_fit.h5ad'))
+    np.savetxt(os.path.join(config.save_dir, f'B.txt'), B, delimiter=',')
 
 if __name__ == '__main__':
     args = argparse.ArgumentParser(description='Velocity Estimation of scRNA-seq and scATAC-seq')

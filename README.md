@@ -53,12 +53,14 @@ we used our implementation of cisTopic that you can download:
 ```bash
 git clone https://github.com/Nour899/cisTopic.git
 ```
- 
+ Note that we used different environmet to run cisTopic as it requires torch. The environment.yml is shown in cisTopic repo.
+
+
 ## Running command
 The path to the json file is needed and the window used to create the bed file (deafualt window length is 10e4).
 Example:
 ```bash
- python ./crak-velo/main.py --config ./crak-velo/config/config_main_10X_mouse_brain.json --w 10000
+ python ./crak-velo/main.py --config ./crak-velo/config/config_main_HSPC.json --w 10000
 ```
 
 # Preprocessing of scATAC-seq data

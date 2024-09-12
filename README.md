@@ -23,8 +23,8 @@ We need to install pybedtools to intersect the regions in scATAC-seq data with g
 conda install --channel conda-forge --channel bioconda pybedtools
 ```
 
-## Running Crak-Velo
-# Configurations
+# Running Crak-Velo
+## Configurations
 To run Crak-Velo you need to add the path of the .json files. Our .json files can be found in the config folder: 
 ./crak-velo/config/
 
@@ -45,17 +45,17 @@ Also you need to specify the path for the saving directory and number of epochs 
         "epochs": 10000,
         "save_dir": "./CRAK-Velo_fit/", ....}
 ```
-# Smoothing scATAC-seq data:
+## Smoothing scATAC-seq data:
 we used our implementation of cisTopic that you can find here:
  
-# Running command
+## Running command
 The path to the json file is needed and the window used to create the bed file (deafualt window length is 10e4).
 Example:
 ```bash
  python ./crak-velo/main.py --config ./crak-velo/config/config_main_10X_mouse_brain.json --w 10000
 ```
 
-## Tutorials notebooks
+# Tutorials notebooks
  Two tutorials notebooks is provided:
 
 1- preprocessing.ipynb: shows preprocessing of the HSPC data and the smoothing of the scATAC-seq data using our cisTopic implementation.
@@ -63,7 +63,7 @@ Example:
 2- producing_df_rg_intersection.ipynb: shows how to produce the df_rg_intersection.csv using pybedtools necessary for running CRAK-Velo.
 
 
-## Figures notebooks
+# Figures notebooks
 For each figure in the paper a notebook is provide:
 
 Fig1.ipynb: for the HSPC dataset  

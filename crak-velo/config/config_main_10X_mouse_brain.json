@@ -1,10 +1,10 @@
 {   
     "name": "VelocityDemo",
-    "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/unitvelo/config/config_logger.json",
+    "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/crak-velo/config/config_logger.json",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/RNA_data_mv_cells.h5ad",
-    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/ATAC_data_mv_cells.h5ad",
-    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/10X_mouse_brain_10000_mv_cells_800_regions.csv",
+    "adata_path": "./CRAK-Velo/notebooks/data/10X_mouse_brain_dataset/...",
+    "adata_atac_path": "./CRAK-Velo/notebooks/data/10X_mouse_brain_dataset/...",
+    "df_rg_intersection_path": "./CRAK-Velo/notebooks/data/10X_mouse_brain_dataset/...",
     
     "cluster_name": "celltype",
     
@@ -28,7 +28,7 @@
 
     "base_trainer": {
         "epochs": 10000,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac//E18_mouse_brain_10X/Mode_1/",
+        "save_dir": "./CRAK-Velo_fit/",
         "verbosity": 2,
         "learning_rate": 1e-2
     },

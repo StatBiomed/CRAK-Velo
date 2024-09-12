@@ -49,7 +49,10 @@ Also you need to specify the path for the saving directory and number of epochs 
         "save_dir": "./CRAK-Velo_fit/", ....}
 ```
 ## Smoothing scATAC-seq data:
-we used our implementation of cisTopic that you can find here:
+we used our implementation of cisTopic that you can download:
+```bash
+git clone https://github.com/Nour899/cisTopic.git
+```
  
 ## Running command
 The path to the json file is needed and the window used to create the bed file (deafualt window length is 10e4).

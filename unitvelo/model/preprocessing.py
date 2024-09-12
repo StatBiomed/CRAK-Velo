@@ -56,7 +56,9 @@ def genes_regions_interesctions(
         "chrom_region", "start_region", "end_region", "region_number", 
         "chrom_gene", "start_gene", "end_gene", "gene_name", "gene_number", " "
     ]
-    df_rg_intersection = df_rg_intersection.to_dataframe(names=col_names).iloc[:, :-1]
+    
+    df_rg_intersection.columns = col_names
+    df_rg_intersection = df_rg_intersection.iloc[:, :-1]
     
     df_rg_intersection["distance"] = np.abs(df_rg_intersection["start_gene"] - df_rg_intersection["start_region"])
     

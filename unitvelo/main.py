@@ -1,14 +1,12 @@
 from velocity import Velocity
 from model import init_adata, init_config, gene_regions_binary_matrix, genes_regions_interesctions
-#import scvelo as scv
 import os
 from utils import ConfigParser, set_seed
 import argparse
-#import scanpy as sc
 import numpy as np
 def run_model(config):
     set_seed(config['system']['seed'])
-    # writer = SummaryWriter(log_dir=config._log_dir)
+    
 
     logger = config.get_logger('trainer')
     logger.info('Inferring RNA velocity with scATAC-seq data')
@@ -22,9 +20,7 @@ def run_model(config):
     logger.info(f"adata shape: {adata.shape} adata_atac shape: {adata_atac.shape} cisTopic shape: {adata_atac.obsm['cisTopic'].shape} binary matrix shape: {B.shape}\n")
     
     
-    # scv.settings.presenter_view = True
-    # scv.settings.verbosity = 0
-    # scv.settings.file_format_figs = 'png'
+
 
     model = Velocity(adata, adata_atac, B, logger, config=config) 
     model.get_velo_genes()
@@ -32,11 +28,7 @@ def run_model(config):
     adata = model.fit_velo_genes()
     adata.uns['basis'] = config['preprocessing']['basis']
     
-    # sc.pp.neighbors(adata)
-    # sc.tl.umap(adata, n_components=2)
-    # scv.tl.velocity_graph(adata, sqrt_transform=True)
-    # scv.tl.velocity_embedding(adata, basis=config['preprocessing']['basis'])
-    # scv.tl.latent_time(adata, min_likelihood=None)
+    
 
     
     adata.write(os.path.join(config.save_dir, f'model_last.h5ad'))

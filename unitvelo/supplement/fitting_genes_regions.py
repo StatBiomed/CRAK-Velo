@@ -91,13 +91,13 @@ def compute_alpha_atac(adata,adata_atac, B):
     for i, gene_name in enumerate(gene_names):
         gene_number = np.where(adata.var_names == gene_name)[0][0]
         r_g = adata.varm["fit_region_weights"][gene_number, c_[r_ == gene_number]]
-        #r_g[r_g!=0] = 1
+       # r_g[r_g!=0] = 1
         if r_g.shape[0] == 0:
             counter += 1
         phi_r = adata_atac.obsm["cisTopic"][:, c_[r_ == gene_number]]
         w_r = np.multiply(phi_r,r_g).sum(axis=1)
         etta = adata.var['fit_etta'][gene_number]
-        alpha_atac[:,i] =   etta * w_r #
+        alpha_atac[:,i] = etta *w_r 
        
     adata.layers["ATAC"] = alpha_atac
     return alpha_atac, adata   

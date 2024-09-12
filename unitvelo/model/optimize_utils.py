@@ -1,8 +1,6 @@
 import tensorflow as tf
 import numpy as np
-# import torch
-# import gpytorch
-#from skorch.probabilistic import ExactGPRegressor
+
 
 exp = tf.math.exp
 pow = tf.math.pow
@@ -16,7 +14,7 @@ sqrt = tf.math.sqrt
 def col_minmax(matrix, gene_id=None):
     if gene_id != None:
         if (np.max(matrix, axis=0) == np.min(matrix, axis=0)):
-            #print (gene_id)
+            
             return matrix
 
     return (matrix - np.min(matrix, axis=0)) \

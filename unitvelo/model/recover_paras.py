@@ -172,9 +172,10 @@ class Recover_Paras(Model_Utils):
             - sum(self.s_r2, axis=0) / (2 * self.vars) 
 
     def finalize_loss(self, iter, s_r2, u_r2, u_deri_r2):
-        # ngenes = self.Ms.shape[1]
-        # nregions = self.M_acc.shape[1] 
-        reg_u_derr_loss = 1/2
+       
+        reg_u_derr_loss = 0.5
+        
+        print(reg_u_derr_loss)
         
         if iter < self.config['base_trainer']['epochs'] /2:
                 remain = iter % 400

@@ -4,7 +4,7 @@
     
     "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/RNA_data_mv_cells.h5ad",
     "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/E18_mouse_brain_10X/ATAC_data_mv_cells.h5ad",
-    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/10X_mouse_brain_1000.csv",
+    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/10X_mouse_brain_10000_mv_cells_800_regions.csv",
     
     "cluster_name": "celltype",
     
@@ -28,7 +28,7 @@
 
     "base_trainer": {
         "epochs": 10000,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac//E18_mouse_brain_10X/Mode_2/",
+        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac//E18_mouse_brain_10X/Mode_1/",
         "verbosity": 2,
         "learning_rate": 1e-2
     },
@@ -49,7 +49,7 @@
 
     "velocity_genes": {
         "r2_adjust": true,
-        "vgenes": "offset"
+        "vgenes": "basic"
     },
 
     "cell_initialization": {

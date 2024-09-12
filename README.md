@@ -31,12 +31,16 @@ To run Crak-Velo you need to add the path of the .json files. Our .json files ca
 You can replicate the .json files to use for other datasets. In the json files it is important to specify the path of the annotation rna and atac data, and the name of the key in obs that has the information about cell clusters.
 Example from the header of a config.json file:
 ```bash
- "name": "VelocityDemo",
- "logger_config_path": "./CRAK-Velo/crak-velo/config/config_logger.json",
 
- "adata_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/postpro_adata/adata_rna_postpro.h5ad",
- "adata_atac_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/postpro_adata/adata_atac_postpro.h5ad",
- "cluster_name": "celltype"
+
+
+"name": "VelocityDemo",
+"logger_config_path": "./CRAK-Velo/crak-velo/config/config_logger.json",
+
+"adata_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/prepro_adata/adata_rna_prepro.h5ad",
+"adata_atac_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/postpro_atac_adata/adata_atac_postpro.h5ad",
+
+"cluster_name": "celltype",
 ```
 Also you need to specify the path for the saving directory and number of epochs (default 10e4):
 ```bash

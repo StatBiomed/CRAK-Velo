@@ -1,10 +1,11 @@
 {
     "name": "VelocityDemo",
-    "logger_config_path": "/data/nelkazwi/code/UniTVelo-ATAC/UniTVelo-ATAC/crak-velo/config/config_logger.json",
+    "logger_config_path": "./CRAK-Velo/crak-velo/config/config_logger.json",
+
+    "adata_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/prepro_adata/adata_rna_prepro.h5ad",
+    "adata_atac_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/postpro_atac_adata/adata_atac_postpro.h5ad",
     
-    "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/RNA_data.h5ad",
-    "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/ATAC_data_filtered_800.h5ad",
-    
+
     "cluster_name": "celltype",
 
     "system": {
@@ -26,7 +27,7 @@
 
     "base_trainer": {
         "epochs": 10000,
-        "save_dir": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/",
+        "save_dir": "../../CRAK-Velo/notebooks/data/HSPC_dataset/fitted_models_adata/",
         "verbosity": 2,
         "learning_rate": 1e-2
     },

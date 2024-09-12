@@ -4,7 +4,7 @@
     
     "adata_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/RNA_data.h5ad",
     "adata_atac_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/HSPC/ATAC_data_filtered_800.h5ad",
-    "df_rg_intersection_path": "/data/nelkazwi/RNA_velo/Unitvelo_atac/df_regions_genes/HSPC_10000.csv",
+    
     "cluster_name": "celltype",
 
     "system": {

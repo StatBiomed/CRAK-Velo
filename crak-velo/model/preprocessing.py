@@ -2,6 +2,7 @@ import scvelo as scv
 import scanpy as sc
 import pandas as pd
 import numpy as np
+import pybedtools
 
 def init_config(config=None):
     if config['fitting_option']['mode'] == 1:
@@ -25,7 +26,7 @@ def init_adata(config, logger, normalize=True):
 
     adata = scv.read(config['adata_path'])
     adata_atac = scv.read(config['adata_atac_path'])
-    df_rg_intersection = pd.read_csv(config['df_rg_intersection_path'], delimiter= "\t", index_col=0)
+    
 
     if normalize:
         scv.pp.filter_and_normalize(
@@ -44,26 +45,43 @@ def init_adata(config, logger, normalize=True):
     else:
         scv.pp.neighbors(adata)
 
-    return adata, adata_atac, df_rg_intersection
+    return adata, adata_atac
 
 def genes_regions_interesctions(
-    df_rg_intersection, 
-    config):
-
+    adata, 
+    adata_atac, 
+    config,
+    col=['chrom', 'chromStart', 'chromEnd'],
+    ):
+ 
+    ngenes = adata.X.shape[1]
+    nregions = adata_atac.X.shape[1]
     w = config['preprocessing']['window']
+
+   
+    gene_coor = adata.var[[col[0], col[1], col[2]]]
+    gene_coor["gene_name"] = gene_coor.index
+    gene_coor["gene_number"] = np.arange(0, ngenes)
+
     
+    region_coor = adata_atac.var[[col[0], col[1], col[2]]]
+    region_coor["region_number"] = np.arange(0, nregions)
+    adata_atac.var['region_number'] = np.arange(0, nregions) 
+
+    a = pybedtools.BedTool.from_dataframe(region_coor)
+    b = pybedtools.BedTool.from_dataframe(gene_coor)
+    df_rg_intersection = a.window(b, w=w).overlap(cols=[2, 3, 6, 7])
+
     col_names = [
         "chrom_region", "start_region", "end_region", "region_number", 
         "chrom_gene", "start_gene", "end_gene", "gene_name", "gene_number", " "
     ]
+    df_rg_intersection = df_rg_intersection.to_dataframe(names=col_names).iloc[:, :-1]
     
-    df_rg_intersection.columns = col_names
-    df_rg_intersection = df_rg_intersection.iloc[:, :-1]
-    
+
     df_rg_intersection["distance"] = np.abs(df_rg_intersection["start_gene"] - df_rg_intersection["start_region"])
-    
+
     condition = df_rg_intersection["distance"] <= w
-    
 
     df_rg_intersection = df_rg_intersection[condition]
 

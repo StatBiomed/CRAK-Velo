@@ -12,9 +12,9 @@ def run_model(config):
     logger.info('Inferring RNA velocity with scATAC-seq data')
     
     config = init_config(config=config)
-    adata , adata_atac, df_rg_intersection = init_adata(config, logger, normalize=True) #
+    adata , adata_atac = init_adata(config, logger, normalize=True) 
     
-    df_rg_intersection = genes_regions_interesctions(df_rg_intersection, config)
+    df_rg_intersection = genes_regions_interesctions(adata,adata_atac, config)
     B, adata_atac = gene_regions_binary_matrix(config, adata, adata_atac, df_rg_intersection, logger)
     
     logger.info(f"adata shape: {adata.shape} adata_atac shape: {adata_atac.shape} cisTopic shape: {adata_atac.obsm['cisTopic'].shape} binary matrix shape: {B.shape}\n")

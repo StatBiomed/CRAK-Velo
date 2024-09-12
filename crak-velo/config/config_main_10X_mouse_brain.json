@@ -4,7 +4,7 @@
     
     "adata_path": "./CRAK-Velo/notebooks/data/10X_mouse_brain_dataset/...",
     "adata_atac_path": "./CRAK-Velo/notebooks/data/10X_mouse_brain_dataset/...",
-    "df_rg_intersection_path": "./CRAK-Velo/notebooks/data/10X_mouse_brain_dataset/...",
+    
     
     "cluster_name": "celltype",
     

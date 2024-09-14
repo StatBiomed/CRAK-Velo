@@ -29,7 +29,7 @@ To run Crak-Velo you need to add the path of the .json files. Our .json files ca
 ./crak-velo/config/
 
 You can replicate the .json files to use for other datasets. In the json files it is important to specify the path of the annotation rna and atac data, and the name of the key in obs that has the information about cell clusters.
-Example from the header of a config.json file:
+Example from the first rows of a config.json file:
 ```bash
 
 
@@ -40,9 +40,9 @@ Example from the header of a config.json file:
 "adata_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/prepro_adata/adata_rna_prepro.h5ad",
 "adata_atac_path": "./CRAK-Velo/notebooks/data/HSPC_dataset/postpro_atac_adata/adata_atac_postpro.h5ad",
 
-"cluster_name": "celltype",
+"cluster_name": "celltype"}
 ```
-Also you need to specify the path for the saving directory and number of epochs (default 10e4):
+Also the path for the saving directory and number of epochs (default 10e4) need to be specified:
 ```bash
  "base_trainer": {
         "epochs": 10000,
@@ -60,17 +60,26 @@ git clone https://github.com/Nour899/cisTopic.git
 The path to the json file is needed and the window used to create the bed file (deafualt window length is 10e4).
 Example:
 ```bash
- python ./crak-velo/main.py --config ./crak-velo/config/config_main_HSPC.json --w 10000
+ python ../../crak-velo/main.py --config ../../crak-velo/config/config_main_HSPC.json --w 10000
 ```
 
 # Preprocessing of scATAC-seq data
- A notebook for preprocessing is provided. It shows preprocessing of the HSPC data and the smoothing of the scATAC-seq data using our cisTopic implementation and the format of .var that the input anndata should have to get the intersections.
+ A notebook for preprocessing is provided. It shows the preprocessing and smoothing of the of the scATAC-seq data in HSPC data. The smoothing is done using our cisTopic implementation. Also, it shows the required format of .var of the input anndata to get the genes-regions intersections.
 
 # Figures notebooks
 For each figure in the paper a notebook is provide:
 
 Fig1.ipynb: for the HSPC dataset  
 Fig2.ipynb: for Fresh Embryonic E18 Mouse Brain (5k) dataset
+
+# CRAK-Velo outputs
+The code will produce three outputs:
+adata_rna_fit.h5ad: contains information of the fitted parameters by CRAK-Velo in .var. For the weights they are stored in .varm["fit_region_weights"].
+
+adata_atac_fit.h5ad: contains all the regions used in the optimization.
+
+B.txt: binary matrix that has dimension regions by genes. It indicates which regions are used to optimize for the gene specific parameters.
+
 
 
 

@@ -7,8 +7,9 @@ __pycache__/
 *$py.class
 
 # Temp data
-data
-notebooks/data
+#data
+#notebooks/data
+*.txt
 *.h5ad
 tempdata/
 trials

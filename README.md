@@ -25,10 +25,11 @@ conda install --channel conda-forge --channel bioconda pybedtools
 
 # Running Crak-Velo
 ## Configurations
-To run Crak-Velo you need to add the path of the .json files. Our .json files can be found in the config folder: 
+To run Crak-Velo you need to set up .json files.
+ Our .json files can be found in the config folder: 
 ./crak-velo/config/
 
-You can replicate the .json files to use for other datasets. In the json files it is important to specify the path of the annotation rna and atac data, and the name of the key in obs that has the information about cell clusters.
+You can replicate the .json files in the repo for usage in other datasets. In the json files it is important to specify the path of the annotation rna and atac data, and the name of the key in obs that has the information about cell clusters.
 Example from the first rows of a config.json file:
 ```bash
 
@@ -74,6 +75,7 @@ Fig2.ipynb: for Fresh Embryonic E18 Mouse Brain (5k) dataset
 
 # CRAK-Velo outputs
 The code will produce three outputs:
+
 adata_rna_fit.h5ad: contains information of the fitted parameters by CRAK-Velo in .var. For the weights they are stored in .varm["fit_region_weights"].
 
 adata_atac_fit.h5ad: contains all the regions used in the optimization.
